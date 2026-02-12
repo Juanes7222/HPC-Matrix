@@ -117,5 +117,6 @@ int main(int argc, char *argv[]){
     printMatrix(matrix2, n);
     printMatrix(result, n);
 
+    return 0;
 
 }
