@@ -37,7 +37,7 @@ declare -A CFLAGS=(
 )
 
 
-BENCH_CPUS="2,3,4,5"
+BENCH_CPUS="1,2,3,4,5,6"
 
 MATRIX_SIZES=(400 800 1600 3200 6400)
 
@@ -151,7 +151,7 @@ compile_project() {
     local src="${SRC[${MODE}]}"
     local out="${EXEC[${MODE}]}"
     local flags="${CFLAGS[${MODE}]}"
-    local cmd="gcc ${flags} -o ${out} ${src}"
+    local cmd="gcc ${flags} -o ${out} ${src} matrix_lib.c"
 
     if [[ ! -f "${src}" ]]; then
         log_error "Archivo fuente no encontrado: ${src}"
