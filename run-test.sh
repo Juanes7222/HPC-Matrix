@@ -94,7 +94,7 @@ validate_mode() {
 }
 
 
-e_system() {
+optimize_system() {
     log_section "Optimizando sistema para benchmark"
 
     if sudo cpupower frequency-set -g performance > /dev/null 2>&1; then
