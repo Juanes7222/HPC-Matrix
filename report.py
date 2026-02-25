@@ -17,13 +17,11 @@ MODE_ORDER = [
     ("sequential",    "Secuencial"),
     ("threads_2t",    "2 Hilos"),
     ("threads_4t",    "4 Hilos"),
-    ("threads_8t",    "8 Hilos"),
-    ("threads_16t",   "16 Hilos"),
-    ("threads_32t",   "32 Hilos"),
+    ("threads_6t",    "6 Hilos"),
     ("concurrent",    "Procesos"),
 ]
 
-MATRIX_SIZES = [10, 100, 200, 400, 800, 1600, 3200]
+MATRIX_SIZES = [400, 800, 1600, 3200, 6400]
 REPETITIONS  = 10
 
 FONT_NAME = "Arial"
