@@ -32,7 +32,7 @@ void fillMatrix(int** matrix, int n) {
     srand((unsigned int)time(NULL) ^ (unsigned int)(size_t)matrix);
     for (int i = 0; i < n; i++)
         for (int j = 0; j < n; j++)
-            matrix[i][j] = rand() % 101;
+            matrix[i][j] = rand();
 }
 
 
