@@ -1,24 +1,32 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Uso:
+# run_tests.sh  --  HPC Benchmark: Matrix Multiplication
+#
+# Usage:
 #   ./run_tests.sh [sequential|concurrent|threads] [num_threads]
 #
-#   Ejemplos:
+#   Examples:
 #     ./run_tests.sh sequential
 #     ./run_tests.sh threads 4
 #     ./run_tests.sh threads 8
 #     ./run_tests.sh concurrent
 #
-# Requisito sudo sin contraseña (agregar con: sudo visudo):
+# Passwordless sudo required (add with: sudo visudo):
 #   your_user ALL=(ALL) NOPASSWD: /usr/bin/cpupower, /usr/bin/tee, /usr/bin/chrt
 # =============================================================================
 
 set -euo pipefail
 
+# ---------------------------------------------------------------------------
+# ARGUMENTS
+# ---------------------------------------------------------------------------
 
 MODE="${1:-sequential}"
 NUM_THREADS="${2:-}"
 
+# ---------------------------------------------------------------------------
+# CONFIGURATION  --  Adjust source and executable names to match your project
+# ---------------------------------------------------------------------------
 
 declare -A SRC=(
     [sequential]="mul_seq.c"
@@ -33,17 +41,25 @@ declare -A EXEC=(
 declare -A CFLAGS=(
     [sequential]="-O2 -Wall"
     [concurrent]="-O2 -Wall"
-    [threads]="-O2 -Wall -lpthread"    # Agrega -fopenmp si usas OpenMP
+    [threads]="-O2 -Wall -lpthread"    # Add -fopenmp if using OpenMP
 )
 
-
+# CPU cores dedicated to the benchmark.
+# Use cores reserved with isolcpus at boot, or any cores you want to pin to.
 BENCH_CPUS="1,2,3,4,5,6"
 
+# Matrix sizes to test
 MATRIX_SIZES=(400 800 1600 3200 6400)
 
+# Repetitions per size
 REPETITIONS=10
 
+# Results directory: never deleted between runs
 RESULTS_DIR="results"
+
+# ---------------------------------------------------------------------------
+# COLORS
+# ---------------------------------------------------------------------------
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -62,15 +78,15 @@ log_section() { echo -e "\n${BOLD}${CYAN}=== $* ===${RESET}"; }
 
 print_banner() {
     local label="${MODE}"
-    [[ "${MODE}" == "threads" ]] && label="threads (${NUM_THREADS} hilos)"
+    [[ "${MODE}" == "threads" ]] && label="threads (${NUM_THREADS} threads)"
 
     echo -e "${BOLD}"
     echo "============================================================"
-    echo "   HPC Benchmark  --  Multiplicación de Matrices"
-    echo "   Modo     : ${label}"
-    echo "   Fecha    : $(date '+%Y-%m-%d %H:%M:%S')"
-    echo "   Host     : $(hostname)"
-    echo "   CPU(s)   : $(nproc) núcleos disponibles"
+    echo "   HPC Benchmark  --  Matrix Multiplication"
+    echo "   Mode      : ${label}"
+    echo "   Date      : $(date '+%Y-%m-%d %H:%M:%S')"
+    echo "   Host      : $(hostname)"
+    echo "   CPU(s)    : $(nproc) available cores"
     echo "   Bench CPUs: ${BENCH_CPUS}"
     echo "============================================================"
     echo -e "${RESET}"
@@ -81,72 +97,72 @@ validate_mode() {
     case "${MODE}" in
         sequential|concurrent|threads) ;;
         *)
-            log_error "Modo desconocido: '${MODE}'. Opciones: sequential | concurrent | threads"
+            log_error "Unknown mode: '${MODE}'. Options: sequential | concurrent | threads"
             exit 1
             ;;
     esac
 
     if [[ "${MODE}" == "threads" && -z "${NUM_THREADS}" ]]; then
-        log_error "El modo 'threads' requiere el número de hilos como segundo argumento."
-        log_error "Ejemplo: ./run_tests.sh threads 8"
+        log_error "Mode 'threads' requires the number of threads as a second argument."
+        log_error "Example: ./run_tests.sh threads 8"
         exit 1
     fi
 }
 
 
 optimize_system() {
-    log_section "Optimizando sistema para benchmark"
+    log_section "Optimizing system for benchmark"
 
     if sudo cpupower frequency-set -g performance > /dev/null 2>&1; then
-        log_ok "Gobernador de CPU: performance"
+        log_ok "CPU governor: performance"
     else
-        log_warn "No se pudo cambiar el gobernador de CPU (¿cpupower instalado?)"
+        log_warn "Could not change CPU governor (is cpupower installed?)"
     fi
 
     if [[ -f /sys/devices/system/cpu/intel_pstate/no_turbo ]]; then
         echo 1 | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo > /dev/null
-        log_ok "Turbo Boost Intel: desactivado"
+        log_ok "Intel Turbo Boost: disabled"
     fi
 
     if [[ -f /sys/devices/system/cpu/cpufreq/boost ]]; then
         echo 0 | sudo tee /sys/devices/system/cpu/cpufreq/boost > /dev/null
-        log_ok "Turbo Boost AMD: desactivado"
+        log_ok "AMD Turbo Boost: disabled"
     fi
 
     sync && echo 3 | sudo tee /proc/sys/vm/drop_caches > /dev/null
-    log_ok "Caché de página: limpia"
+    log_ok "Page cache: cleared"
 
     echo 0 | sudo tee /proc/sys/kernel/randomize_va_space > /dev/null
-    log_ok "ASLR: desactivado"
+    log_ok "ASLR: disabled"
 }
 
 
 restore_system() {
-    log_section "Restaurando sistema"
+    log_section "Restoring system"
 
     if sudo cpupower frequency-set -g powersave > /dev/null 2>&1; then
-        log_ok "Gobernador de CPU: powersave"
+        log_ok "CPU governor: powersave"
     fi
 
     if [[ -f /sys/devices/system/cpu/intel_pstate/no_turbo ]]; then
         echo 0 | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo > /dev/null
-        log_ok "Turbo Boost Intel: restaurado"
+        log_ok "Intel Turbo Boost: restored"
     fi
 
     if [[ -f /sys/devices/system/cpu/cpufreq/boost ]]; then
         echo 1 | sudo tee /sys/devices/system/cpu/cpufreq/boost > /dev/null
-        log_ok "Turbo Boost AMD: restaurado"
+        log_ok "AMD Turbo Boost: restored"
     fi
 
     echo 2 | sudo tee /proc/sys/kernel/randomize_va_space > /dev/null
-    log_ok "ASLR: restaurado"
+    log_ok "ASLR: restored"
 
-    log_ok "Sistema restaurado correctamente."
+    log_ok "System restored successfully."
 }
 
 
 compile_project() {
-    log_section "Compilación"
+    log_section "Compilation"
 
     local src="${SRC[${MODE}]}"
     local out="${EXEC[${MODE}]}"
@@ -154,16 +170,16 @@ compile_project() {
     local cmd="gcc ${flags} -o ${out} ${src} matrix_lib.c"
 
     if [[ ! -f "${src}" ]]; then
-        log_error "Archivo fuente no encontrado: ${src}"
+        log_error "Source file not found: ${src}"
         exit 1
     fi
 
-    log_info "Comando: ${cmd}"
+    log_info "Command: ${cmd}"
 
     if eval "${cmd}"; then
-        log_ok "Compilación exitosa: ${out}"
+        log_ok "Compilation successful: ${out}"
     else
-        log_error "Compilación fallida. Revisa los errores anteriores."
+        log_error "Compilation failed. Check the errors above."
         exit 1
     fi
 }
@@ -186,17 +202,12 @@ setup_csv() {
     if [[ -f "${REPORT_FILE}" ]]; then
         local existing
         existing=$(( $(wc -l < "${REPORT_FILE}") - 1 ))
-        log_warn "CSV existente detectado con ${existing} medición(es): ${REPORT_FILE}"
-        log_warn "Las pruebas ya completadas se saltarán automáticamente."
+        log_warn "Existing CSV detected with ${existing} measurement(s): ${REPORT_FILE}"
+        log_warn "Already completed tests will be skipped automatically."
     else
-        # mode: sequential | concurrent | threads
-        # threads: número de hilos (0 si no aplica)
-        # matrix_size, repetition: identifican la prueba
-        # wall_time_ms: tiempo medido por el programa en C
-        # exit_code: para detectar fallos
         echo "mode,threads,matrix_size,repetition,wall_time_ms,exit_code" \
             > "${REPORT_FILE}"
-        log_ok "CSV nuevo creado: ${REPORT_FILE}"
+        log_ok "New CSV created: ${REPORT_FILE}"
     fi
 }
 
@@ -215,13 +226,6 @@ write_measurement() {
     sync
 }
 
-# ---------------------------------------------------------------------------
-# EJECUCIÓN DE UNA PRUEBA INDIVIDUAL
-#
-# El tiempo lo imprime el propio programa en C (stdout) en milisegundos.
-# chrt -f 99: prioridad de tiempo real FIFO (máxima)
-# taskset -c:  fija el proceso a los núcleos definidos en BENCH_CPUS
-# ---------------------------------------------------------------------------
 
 run_single_test() {
     local exec_bin="$1"
@@ -250,17 +254,17 @@ run_benchmark() {
     local exec_bin="${EXEC[${MODE}]}"
 
     if [[ ! -x "${exec_bin}" ]]; then
-        log_error "Ejecutable no encontrado o sin permisos de ejecución: ${exec_bin}"
+        log_error "Executable not found or not executable: ${exec_bin}"
         exit 1
     fi
 
     local label="${MODE}"
-    [[ "${MODE}" == "threads" ]] && label="threads (${NUM_THREADS} hilos)"
+    [[ "${MODE}" == "threads" ]] && label="threads (${NUM_THREADS} threads)"
 
-    log_section "Pruebas  [${label}]"
-    echo -e "${BOLD}Tamaños    : ${MATRIX_SIZES[*]}"
-    echo -e "Repeticiones: ${REPETITIONS}"
-    [[ "${MODE}" == "threads" ]] && echo -e "Hilos       : ${NUM_THREADS}"
+    log_section "Tests  [${label}]"
+    echo -e "${BOLD}Sizes       : ${MATRIX_SIZES[*]}"
+    echo -e "Repetitions : ${REPETITIONS}"
+    [[ "${MODE}" == "threads" ]] && echo -e "Threads     : ${NUM_THREADS}"
     echo -e "${RESET}"
 
     local total_runs=$(( ${#MATRIX_SIZES[@]} * REPETITIONS ))
@@ -277,11 +281,10 @@ run_benchmark() {
 
     for rep in $(seq 1 "${REPETITIONS}"); do
         echo "============================================================"
-        log_info "Ronda ${rep} de ${REPETITIONS}"
+        log_info "Round ${rep} of ${REPETITIONS}"
 
         for size in "${MATRIX_SIZES[@]}"; do
 
-            # Verificar si esta combinación exacta (tamaño + rep) ya fue guardada
             local already
             already=$(awk -F',' -v m="${mode_label}" -v t="${threads}" \
                 -v s="${size}" -v r="${rep}" \
@@ -290,12 +293,12 @@ run_benchmark() {
                 "${REPORT_FILE}" 2>/dev/null)
 
             if (( already > 0 )); then
-                log_skip "Tamaño=${size} Rep=${rep} ya guardado. Saltando."
+                log_skip "Size=${size} Rep=${rep} already saved. Skipping."
                 continue
             fi
 
             current_run=$(( current_run + 1 ))
-            printf "  [%3d/%3d] Tamaño=%-6s Rep=%-3d " \
+            printf "  [%3d/%3d] Size=%-6s Rep=%-3d " \
                 "${current_run}" "${total_runs}" "${size}" "${rep}"
 
             read -r elapsed_ms exit_code <<< "$(run_single_test "${exec_bin}" "${size}")"
@@ -305,7 +308,7 @@ run_benchmark() {
             printf "%s ms\n" "${elapsed_ms}"
 
             if [[ "${exit_code}" -ne 0 ]]; then
-                log_warn "Exit code ${exit_code} en tamaño=${size} rep=${rep}"
+                log_warn "Exit code ${exit_code} at size=${size} rep=${rep}"
             fi
         done
     done
@@ -328,17 +331,18 @@ get_sequential_avg() {
         "${seq_csv}"
 }
 
+
 print_summary() {
-    log_section "Resumen de resultados"
+    log_section "Results summary"
 
     local mode_label="${MODE}"
     [[ "${MODE}" == "threads" ]] && mode_label="threads"
     local threads="${NUM_THREADS:-0}"
 
-    echo -e "CSV guardado en: ${BOLD}${REPORT_FILE}${RESET}\n"
+    echo -e "CSV saved at: ${BOLD}${REPORT_FILE}${RESET}\n"
 
     printf "${BOLD}%-12s %-16s %-16s %-12s${RESET}\n" \
-        "Tamaño" "Promedio (ms)" "Seq avg (ms)" "Speedup"
+        "Size" "Average (ms)" "Seq avg (ms)" "Speedup"
     printf "%-12s %-16s %-16s %-12s\n" \
         "----------" "--------------" "--------------" "----------"
 
@@ -365,7 +369,7 @@ print_summary() {
     done
 
     echo ""
-    log_ok "Benchmark finalizado: $(date '+%Y-%m-%d %H:%M:%S')"
+    log_ok "Benchmark finished: $(date '+%Y-%m-%d %H:%M:%S')"
 }
 
 
