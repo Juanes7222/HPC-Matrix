@@ -47,7 +47,7 @@ declare -A CFLAGS=(
 
 # CPU cores dedicated to the benchmark.
 # Use cores reserved with isolcpus at boot, or any cores you want to pin to.
-BENCH_CPUS="1,2,3,4,5,6"
+BENCH_CPUS="0,1,2,3,4,5,6,7,8,9,10,11,12"
 
 # Matrix sizes to test
 MATRIX_SIZES=(400 800 1600 3200 6400)
@@ -56,7 +56,7 @@ MATRIX_SIZES=(400 800 1600 3200 6400)
 REPETITIONS=10
 
 # Thread counts used when MODE=all
-ALL_THREAD_COUNTS=(2 4 6)
+ALL_THREAD_COUNTS=(2 4 6 6 8 12)
 
 RESULTS_DIR="results"
 
