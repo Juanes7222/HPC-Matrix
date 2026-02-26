@@ -3,9 +3,10 @@
 # run_tests.sh  --  HPC Benchmark: Matrix Multiplication
 #
 # Usage:
-#   ./run_tests.sh [sequential|concurrent|threads] [num_threads]
+#   ./run_tests.sh [sequential|concurrent|threads|all] [num_threads]
 #
 #   Examples:
+#     ./run_tests.sh all                  # runs every configuration in order
 #     ./run_tests.sh sequential
 #     ./run_tests.sh threads 4
 #     ./run_tests.sh threads 8
@@ -54,12 +55,11 @@ MATRIX_SIZES=(400 800 1600 3200 6400)
 # Repetitions per size
 REPETITIONS=10
 
-# Results directory: never deleted between runs
+# Thread counts used when MODE=all
+ALL_THREAD_COUNTS=(2 4 6)
+
 RESULTS_DIR="results"
 
-# ---------------------------------------------------------------------------
-# COLORS
-# ---------------------------------------------------------------------------
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -95,9 +95,10 @@ print_banner() {
 
 validate_mode() {
     case "${MODE}" in
-        sequential|concurrent|threads) ;;
+        sequential|concurrent|threads|all) ;;
         *)
-            log_error "Unknown mode: '${MODE}'. Options: sequential | concurrent | threads"
+            log_error "Unknown mode: '${MODE}'."
+            log_error "Options: sequential | concurrent | threads | all"
             exit 1
             ;;
     esac
@@ -107,6 +108,78 @@ validate_mode() {
         log_error "Example: ./run_tests.sh threads 8"
         exit 1
     fi
+}
+
+# ---------------------------------------------------------------------------
+# ALL MODE
+#
+# Runs every configuration in a fixed order:
+#   1. sequential
+#   2. threads 2, 4, 6   (defined in ALL_THREAD_COUNTS)
+#   3. concurrent
+#
+# Each configuration is a separate subprocess so that system optimization
+# and restoration happen independently for each run. If one configuration
+# fails, the rest still execute.
+# ---------------------------------------------------------------------------
+
+run_all() {
+    local script
+    script="$(realpath "$0")"
+
+    local configs=("sequential")
+    for t in "${ALL_THREAD_COUNTS[@]}"; do
+        configs+=("threads:${t}")
+    done
+    configs+=("concurrent")
+
+    local total=${#configs[@]}
+    local passed=0
+    local failed=0
+    local failed_list=()
+
+    echo -e "${BOLD}"
+    echo "############################################################"
+    echo "   ALL MODE  --  Running ${total} configurations"
+    echo "   $(date '+%Y-%m-%d %H:%M:%S')"
+    echo "############################################################"
+    echo -e "${RESET}"
+
+    for config in "${configs[@]}"; do
+        local mode_arg threads_arg=""
+        if [[ "${config}" == *":"* ]]; then
+            mode_arg="${config%%:*}"
+            threads_arg="${config##*:}"
+        else
+            mode_arg="${config}"
+        fi
+
+        echo -e "\n${BOLD}${CYAN}>>> Starting: ${config}${RESET}"
+
+        if bash "${script}" ${mode_arg} ${threads_arg}; then
+            passed=$(( passed + 1 ))
+            log_ok "Finished: ${config}"
+        else
+            failed=$(( failed + 1 ))
+            failed_list+=("${config}")
+            log_warn "Configuration failed: ${config}. Continuing with next."
+        fi
+    done
+
+    # Global summary
+    echo -e "\n${BOLD}"
+    echo "############################################################"
+    echo "   ALL MODE COMPLETE"
+    echo "   Passed : ${passed}/${total}"
+    echo "   Failed : ${failed}/${total}"
+    if (( failed > 0 )); then
+        echo "   Failed configs: ${failed_list[*]}"
+    fi
+    echo "   $(date '+%Y-%m-%d %H:%M:%S')"
+    echo "############################################################"
+    echo -e "${RESET}"
+
+    (( failed == 0 ))
 }
 
 
@@ -211,7 +284,6 @@ setup_csv() {
     fi
 }
 
-
 write_measurement() {
     local size="$1" rep="$2" elapsed_ms="$3" exit_code="$4"
     local mode_label="${MODE}"
@@ -273,6 +345,7 @@ run_benchmark() {
     [[ "${MODE}" == "threads" ]] && mode_label="threads"
     local threads="${NUM_THREADS:-0}"
 
+    # Initialize counter with already saved measurements
     if [[ -f "${REPORT_FILE}" ]]; then
         current_run=$(awk -F',' -v m="${mode_label}" -v t="${threads}" \
             'NR>1 && $1==m && $2==t { count++ } END { print count+0 }' \
@@ -375,6 +448,12 @@ print_summary() {
 
 main() {
     validate_mode
+
+    if [[ "${MODE}" == "all" ]]; then
+        run_all
+        return
+    fi
+
     print_banner
 
     trap restore_system EXIT
