@@ -18,6 +18,8 @@ MODE_ORDER = [
     ("threads_2t",    "2 Hilos"),
     ("threads_4t",    "4 Hilos"),
     ("threads_6t",    "6 Hilos"),
+    ("threads_8t",    "8 Hilos"),
+    ("threads_12t",   "12 Hilos"),
     ("concurrent",    "Procesos"),
 ]
 
