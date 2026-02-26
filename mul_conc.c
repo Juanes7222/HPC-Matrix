@@ -3,18 +3,22 @@
 #include <unistd.h>
 #include "matrix_lib.h"
 
-/* Reads num_processes from argv[2]. */
+/*
+ * Returns num_processes from argv[2] if provided.
+ * Falls back to sysconf(_SC_NPROCESSORS_ONLN) otherwise.
+ */
 static int extractProcesses(int argc, char *argv[]) {
-    if (argc < 3) {
-        fprintf(stderr, "Use: %s <N> <num_processes>\n", argv[0]);
-        exit(EXIT_FAILURE);
+    if (argc >= 3) {
+        int p = atoi(argv[2]);
+        if (p <= 0) {
+            fprintf(stderr, "Error: num_processes must be Z+.\n");
+            exit(EXIT_FAILURE);
+        }
+        return p;
     }
-    int p = atoi(argv[2]);
-    if (p <= 0) {
-        fprintf(stderr, "Error: num_processes must be Z+.\n");
-        exit(EXIT_FAILURE);
-    }
-    return p;
+    int online = (int)sysconf(_SC_NPROCESSORS_ONLN);
+    if (online <= 0) online = 1;
+    return online;
 }
 
 /*
@@ -43,8 +47,8 @@ static int** sharedResultMatrix(int n) {
 
 int main(int argc, char *argv[]) {
 
-    int n         = extractN(argc, argv);
-    int n_procs   = extractProcesses(argc, argv);
+    int n       = extractN(argc, argv);
+    int n_procs = extractProcesses(argc, argv);
 
     if (n_procs > n) n_procs = n;
 
