@@ -1,3 +1,4 @@
+mode,threads,matrix_size,repetition,wall_time_ms,exit_code
 sequential,0,400,1,20.666,0
 sequential,0,800,1,168.070,0
 sequential,0,1600,1,1340.155,0
