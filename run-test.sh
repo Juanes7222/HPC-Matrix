@@ -26,10 +26,13 @@ declare -A SRC=(
     [concurrent]="mul_conc.c"
     [threads]="mul_threads.c"
 )
+
+BIN_DIR="bin"
+
 declare -A EXEC=(
-    [sequential]="./mul_seq"
-    [concurrent]="./mul_conc"
-    [threads]="./mul_threads"
+    [sequential]="${BIN_DIR}/mul_seq"
+    [concurrent]="${BIN_DIR}/mul_conc"
+    [threads]="${BIN_DIR}/mul_threads"
 )
 declare -A CFLAGS=(
     [sequential]="-O2 -Wall"
@@ -39,7 +42,6 @@ declare -A CFLAGS=(
 
 # CPU cores dedicated to the benchmark.
 # Use cores reserved with isolcpus at boot, or any cores you want to pin to.
-# Ryzen 5 7600X: 6 physical cores, 12 logical threads (SMT), indices 0-11.
 BENCH_CPUS="0,1,2,3,4,5,6,7,8,9,10,11"
 
 # Matrix sizes to test
@@ -49,10 +51,10 @@ MATRIX_SIZES=(400 800 1600 3200 6400)
 REPETITIONS=10
 
 # Thread counts used when MODE=all
+# Ryzen 5 7600X: 6 physical cores, 12 logical threads (SMT)
 ALL_THREAD_COUNTS=(2 4 6 8 12)
 
 RESULTS_DIR="results"
-
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -67,7 +69,6 @@ log_warn()    { echo -e "${YELLOW}[WARN]${RESET}  $*"; }
 log_error()   { echo -e "${RED}[ERROR]${RESET} $*" >&2; }
 log_skip()    { echo -e "  ${YELLOW}[SKIP]${RESET}  $*"; }
 log_section() { echo -e "\n${BOLD}${CYAN}=== $* ===${RESET}"; }
-
 
 print_banner() {
     local label="${MODE}"
@@ -85,7 +86,6 @@ print_banner() {
     echo -e "${RESET}"
 }
 
-
 validate_mode() {
     case "${MODE}" in
         sequential|concurrent|threads|all) ;;
@@ -102,19 +102,6 @@ validate_mode() {
         exit 1
     fi
 }
-
-# ---------------------------------------------------------------------------
-# ALL MODE
-#
-# Runs every configuration in a fixed order:
-#   1. sequential
-#   2. threads 2, 4, 6   (defined in ALL_THREAD_COUNTS)
-#   3. concurrent
-#
-# Each configuration is a separate subprocess so that system optimization
-# and restoration happen independently for each run. If one configuration
-# fails, the rest still execute.
-# ---------------------------------------------------------------------------
 
 run_all() {
     local script
@@ -159,7 +146,6 @@ run_all() {
         fi
     done
 
-    # Global summary
     echo -e "\n${BOLD}"
     echo "############################################################"
     echo "   ALL MODE COMPLETE"
@@ -174,7 +160,6 @@ run_all() {
 
     (( failed == 0 ))
 }
-
 
 optimize_system() {
     log_section "Optimizing system for benchmark"
@@ -202,7 +187,6 @@ optimize_system() {
     log_ok "ASLR: disabled"
 }
 
-
 restore_system() {
     log_section "Restoring system"
 
@@ -226,9 +210,10 @@ restore_system() {
     log_ok "System restored successfully."
 }
 
-
 compile_project() {
     log_section "Compilation"
+
+    mkdir -p "${BIN_DIR}"
 
     local src="${SRC[${MODE}]}"
     local out="${EXEC[${MODE}]}"
@@ -249,7 +234,6 @@ compile_project() {
         exit 1
     fi
 }
-
 
 get_csv_path() {
     local label="${MODE}"
@@ -291,7 +275,6 @@ write_measurement() {
     sync
 }
 
-
 run_single_test() {
     local exec_bin="$1"
     local size="$2"
@@ -313,7 +296,6 @@ run_single_test() {
 
     echo "${elapsed_ms} ${exit_code}"
 }
-
 
 run_benchmark() {
     local exec_bin="${EXEC[${MODE}]}"
@@ -380,7 +362,6 @@ run_benchmark() {
     done
 }
 
-
 get_sequential_avg() {
     local size="$1"
     local seq_csv
@@ -396,7 +377,6 @@ get_sequential_avg() {
          END { if (count>0) printf "%.3f", sum/count; else print "N/A" }' \
         "${seq_csv}"
 }
-
 
 print_summary() {
     log_section "Results summary"
@@ -437,7 +417,6 @@ print_summary() {
     echo ""
     log_ok "Benchmark finished: $(date '+%Y-%m-%d %H:%M:%S')"
 }
-
 
 main() {
     validate_mode
