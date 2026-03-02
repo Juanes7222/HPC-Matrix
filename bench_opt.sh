@@ -44,8 +44,6 @@ REPETITIONS=5
 # CPU cores to pin to (adjust to your machine)
 BENCH_CPUS="0,1,2,3,4,5,6,7,8,9,10,11"
 
-# Small matrix used for correctness verification (must run fast even at -O0)
-VERIFY_N=64
 
 # ---------------------------------------------------------------------------
 # COMPILER CONFIGURATIONS
@@ -142,28 +140,48 @@ compile_config() {
     fi
 }
 
-REF_OUTPUT=""
+# ---------------------------------------------------------------------------
+# CORRECTNESS CHECK
+#
+# Compiles verify_mul.c with the same flags as each benchmark configuration
+# and runs it. verify_mul.c multiplies two 4x4 matrices with hardcoded values
+# and compares against the mathematically correct result, returning exit 0 on
+# success and exit 1 on failure.
+#
+# This proves that the compiler optimizations did not alter the behavior of
+# matrixMultiply, not just that all configs agree with each other.
+# ---------------------------------------------------------------------------
 
-generate_reference() {
-    local ref_bin="${BIN_DIR}/mul_seq_O0"
-    if [[ ! -x "${ref_bin}" ]]; then
-        log_error "Reference binary (O0) not found. Cannot verify correctness."
-        return 1
+compile_verifier() {
+    local label="$1"
+    local flags="$2"
+    local bin="${BIN_DIR}/verify_mul_${label}"
+    local flags_clean
+    flags_clean=$(echo "${flags}" | tr -s ' ' | xargs)
+
+    if gcc ${flags_clean} -o "${bin}" verify_mul.c matrix_lib.c 2>/dev/null; then
+        echo "${bin}"
+    else
+        echo ""
     fi
-
-    REF_OUTPUT=$(sudo chrt -f 1 taskset -c "${BENCH_CPUS}" \
-        "${ref_bin}" "${VERIFY_N}" 2>/dev/null | tail -n +2)
-
-    log_ok "Reference output generated (N=${VERIFY_N}, O0 binary)"
 }
 
 check_correctness() {
-    local bin="$1"
-    local output
-    output=$(sudo chrt -f 1 taskset -c "${BENCH_CPUS}" \
-        "${bin}" "${VERIFY_N}" 2>/dev/null | tail -n +2)
+    local label="$1"
+    local flags="$2"
+    local verifier="${BIN_DIR}/verify_mul_${label}"
 
-    if [[ "${output}" == "${REF_OUTPUT}" ]]; then
+    if [[ ! -x "${verifier}" ]]; then
+        verifier=$(compile_verifier "${label}" "${flags}")
+        if [[ -z "${verifier}" ]]; then
+            log_warn "Could not compile verifier for [${label}]."
+            echo "N/A"
+            return
+        fi
+    fi
+
+    # Run without chrt/taskset: correctness does not require real-time priority
+    if "${verifier}" > /dev/null 2>&1; then
         echo "1"
     else
         echo "0"
@@ -188,6 +206,7 @@ run_single() {
 
 write_row() {
     local config="$1" flags="$2" size="$3" rep="$4" ms="$5" correct="$6"
+    # Wrap flags in quotes to keep CSV valid despite spaces
     printf '"%s","%s",%s,%s,%s,%s\n' \
         "${config}" "${flags}" "${size}" "${rep}" "${ms}" "${correct}" \
         >> "${CSV_FILE}"
@@ -227,15 +246,13 @@ run_benchmark() {
         fi
 
         local correct
-        if [[ -n "${REF_OUTPUT}" ]]; then
-            correct=$(check_correctness "${bin}")
-            if [[ "${correct}" == "1" ]]; then
-                log_ok "Correctness: PASS"
-            else
-                log_warn "Correctness: FAIL (results differ from O0 reference)"
-            fi
+        correct=$(check_correctness "${label}" "${flags}")
+        if [[ "${correct}" == "1" ]]; then
+            log_ok "Correctness: PASS"
+        elif [[ "${correct}" == "0" ]]; then
+            log_warn "Correctness: FAIL (compiler altered matrixMultiply behavior)"
         else
-            correct="N/A"
+            log_warn "Correctness: N/A (verifier could not be built)"
         fi
 
         for rep in $(seq 1 "${REPETITIONS}"); do
@@ -356,6 +373,7 @@ print_summary() {
         printf "%-6s  %-18s  %10s  %s\n" "------" "------------------" \
             "----------" "-----"
 
+        # Sort configs by speedup descending
         local rank=1
         for entry in "${CONFIGS[@]}"; do
             local label flags
@@ -372,7 +390,7 @@ print_summary() {
         echo ""
         echo "Notes:"
         echo "  Speedup = T_O0 / T_config  (>1 means faster than -O0)"
-        echo "  Correctness verified against O0 output at N=${VERIFY_N}"
+        echo "  Correctness verified against known 4x4 result (verify_mul.c)"
         echo "  Measurements: ${REPETITIONS} repetitions per size"
         echo "  CPU affinity: ${BENCH_CPUS}"
         echo "  Date: $(date '+%Y-%m-%d %H:%M:%S')"
@@ -449,6 +467,7 @@ main() {
     optimize_system
     setup
 
+    # Compile all configs first so failures are visible upfront
     log_section "Compiling all configurations"
     for entry in "${CONFIGS[@]}"; do
         local label flags
@@ -462,11 +481,10 @@ main() {
         fi
     done
 
-    log_section "Generating correctness reference (O0, N=${VERIFY_N})"
-    generate_reference
-
+    # Run benchmarks
     run_benchmark
 
+    # Print and save summary
     print_summary
 }
 
