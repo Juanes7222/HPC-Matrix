@@ -1,0 +1,12 @@
+
+Compiler flags: -Wall
+Repetitions   : 5
+CPU affinity  : core 0
+Date          : 2026-03-04 15:42:04
+GCC           : gcc (GCC) 15.2.1 20260209
+
+Per-size average wall time (ms)
+=======================================================================
+Impl            N=1000      N=2000      N=3000   Avg Speedup
+----------  ----------  ----------  ----------  ------------
+std             2737,0
