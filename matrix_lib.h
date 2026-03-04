@@ -44,6 +44,18 @@ void matrixMultiplyRange(int** matrix1, int** matrix2, int** result,
                          int n, int row_start, int row_end);
 
 /*
+ * Multiplies matrix1 * matrix2 using the transposed access pattern.
+ */
+void matrixMultiplyWithTransposed(int** matrix1, int** matrix2, int** result, int n);
+
+/*
+ * Multiplies only rows [row_start, row_end) of matrix1 * matrix2 using the transposed access pattern.
+ * Called by each thread or child process with its assigned row range.
+ */
+void matrixMultiplyRangeWithTransposed(int** matrix1, int** matrix2, int** result,
+                                       int n, int row_start, int row_end);
+
+/*
  * Returns wall time in milliseconds between t_start and t_end.
  * Intended for use with clock_gettime(CLOCK_MONOTONIC, ...).
  */

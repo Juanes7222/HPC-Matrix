@@ -41,17 +41,36 @@ void matrixMultiply(int** matrix1, int** matrix2, int** result, int n) {
 }
 
 
+void matrixMultiplyWithTransposed(int** matrix1, int** matrix2, int** result, int n) {
+    matrixMultiplyRangeWithTransposed(matrix1, matrix2, result, n, 0, n);
+}
+
+
 void matrixMultiplyRange(int** matrix1, int** matrix2, int** result,
+                         int n, int row_start, int row_end) {
+    for (int i = row_start; i < row_end; i++)
+        for (int j = 0; j < n; j++) {
+            result[i][j] = 0;
+            for (int k = 0; k < n; k++)
+                result[i][j] += matrix1[i][k] * matrix2[k][j];
+        }
+}
+
+
+void matrixMultiplyRangeWithTransposed(int** matrix1, int** matrix2, int** result,
                          int n, int row_start, int row_end) {
     /* Loop order i-k-j gives better cache performance than i-j-k:
      * the innermost access to matrix2[k][j] is sequential in memory,
-     * which reduces cache misses on large matrices. */
+     * which reduces cache misses on large matrices.
+     * In this algorithm matrix2 is the transpose of the original matrix2. 
+     * Transposing matrix2 so that matrix2T[j][k] = matrix2[k][j]
+     * Now the inner loop accesses matrix2T[j] row by row — all in the same cache lines */
     for (int i = row_start; i < row_end; i++) {
-        for (int j = 0; j < n; j++)
+        for (int j = 0; j < n; j++) {
             result[i][j] = 0;
-        for (int k = 0; k < n; k++)
-            for (int j = 0; j < n; j++)
-                result[i][j] += matrix1[i][k] * matrix2[k][j];
+            for (int k = 0; k < n; k++)
+                result[i][j] += matrix1[i][k] * matrix2[j][k];
+        }
     }
 }
 
