@@ -1,0 +1,83 @@
+\section{Marco Teórico}
+
+\subsection{Computación de Alto Rendimiento (HPC)}
+La Computación de Alto Rendimiento (HPC, por sus siglas en inglés) consiste en la agregación de potencia de cálculo a través de arquitecturas paralelas para resolver problemas científicos y tecnológicos de extrema complejidad. Esta disciplina permite ejecutar algoritmos y modelados matemáticos que resultarían inabarcables para un sistema tradicional debido a restricciones de tiempo y recursos de hardware \parencite{Hager2010HPC}. Al dividir cargas masivas de trabajo en instrucciones más pequeñas que se procesan simultáneamente, HPC maximiza la velocidad de procesamiento de datos y la obtención de resultados en la ingeniería \parencite{Patterson2017Computer}.
+
+\subsection{Fundamentos Matemáticos de la Multiplicación Matricial}
+La multiplicación de matrices es una operación algebraica bidimensional fundamental que procesa dos matrices de origen para producir una tercera. Dadas dos matrices \(A\) de dimensión \(m \times p\) y \(B\) de dimensión \(p \times n\), su producto da como resultado una matriz \(C\) de dimensiones \(m \times n\). Matemáticamente, el valor de cada celda individual \(C_{ij}\) en la matriz resultante se calcula mediante el producto punto o escalar entre la \(i\)-ésima fila de la matriz \(A\) y la \(j\)-ésima columna de la matriz \(B\). Esta operación se expresa de forma analítica mediante la siguiente sumatoria:
+
+\[ C_{ij} = \sum_{k=1}^{p} A_{ik} B_{kj} \]
+
+Para que esta operación esté matemáticamente definida y sea computacionalmente viable, existe una condición estricta de dimensionalidad: el número de columnas de la primera matriz (\(p\)) debe coincidir exactamente con el número de filas de la segunda matriz \parencite{Strang2016Linear}. 
+
+En el contexto de la ingeniería y la Computación de Alto Rendimiento (HPC), la multiplicación matricial trasciende la teoría pura para consolidarse como la rutina principal (\textit{kernel}) subyacente en la gran mayoría del software científico. Esta operación constituye el pilar del Nivel 3 de la especificación BLAS (\textit{Basic Linear Algebra Subprograms}), el estándar de facto para operaciones de álgebra lineal. La eficiencia con la que un procesador ejecuta este algoritmo dicta directamente el rendimiento de aplicaciones críticas modernas, tales como el modelado de dinámica de fluidos, la física de partículas, el procesamiento masivo de imágenes y, muy especialmente, el entrenamiento de arquitecturas profundas en inteligencia artificial mediante redes neuronales \parencite{Dongarra1990BLAS}.
+
+
+\subsection{Complejidad Computacional de la Multiplicación de Matrices}
+La multiplicación de matrices es un problema canónico en el álgebra lineal computacional, utilizado frecuentemente para evaluar el desempeño y la robustez de las arquitecturas de hardware. Dadas dos matrices cuadradas \(A\) y \(B\) de dimensiones \(n \times n\), el algoritmo iterativo secuencial clásico exige iterar mediante tres ciclos anidados, realizando matemáticamente \(n^3\) multiplicaciones y \(n^2(n-1)\) sumas \parencite{Cormen2009Algorithms}. 
+
+Esto establece una complejidad temporal asintótica estricta de \(\mathcal{O}(n^3)\). Este crecimiento cúbico implica que, si el tamaño de la matriz se duplica, el esfuerzo computacional se multiplica por un factor de ocho. Debido a esta pronunciada curva de costo algorítmico, la distribución de la carga mediante técnicas de programación paralela (hilos o procesos) se vuelve un requisito indispensable cuando se operan matrices de dimensiones elevadas \parencite{Grama2003Introduction}.
+
+\subsection{Programación Secuencial y Concurrente}
+La programación secuencial es el paradigma clásico de desarrollo donde las instrucciones de un algoritmo se ejecutan de forma estrictamente lineal, una tras otra, sobre un único núcleo de procesamiento. En este modelo tradicional, el límite de rendimiento está directamente dictado por la frecuencia de reloj del hardware. Como respuesta a estas limitaciones físicas, la programación concurrente estructura el software en múltiples hilos o tareas independientes que hacen progreso de forma superpuesta en el tiempo. Cuando estas tareas operan de manera simultánea en una arquitectura de hardware multinúcleo, la concurrencia se traduce en paralelismo físico, lo cual permite dividir la carga de trabajo y reducir drásticamente el tiempo de ejecución en problemas de cómputo intensivo \parencite{BenAri2006Concurrent}.
+
+\subsection{Sistemas de Memoria Compartida}
+En el ámbito de la computación paralela, el modelo de memoria compartida establece que múltiples hilos de ejecución (como los creados por la librería Pthreads) operan dentro de un mismo espacio de direccionamiento lógico. A nivel de arquitectura, esto significa que todos los núcleos del procesador pueden acceder de forma directa y simultánea a las mismas estructuras de datos residentes en la memoria principal. Para problemas matriciales, este modelo resulta excepcionalmente eficiente frente a los sistemas de memoria distribuida, ya que evita la necesidad de copiar y transmitir los datos de las matrices de origen repetidamente entre procesos. Aunque este paradigma exige control riguroso para evitar condiciones de carrera, en operaciones intrínsecamente independientes como el cálculo individual de las celdas de una matriz resultado, su implementación maximiza la eficiencia computacional sin sobrecarga de sincronización \parencite{Silberschatz2018Operating}.
+
+\subsection{Jerarquía de Caché, Líneas de Caché y Localidad de Memoria}
+El rendimiento de una aplicación de alto rendimiento (HPC) no depende exclusivamente de la capacidad matemática del procesador, sino también del acceso al subsistema de memoria. Para mitigar la alta latencia térmica y física de la memoria RAM, los procesadores modernos integran una jerarquía de memoria ultrarrápida cercana a los núcleos, conocida como memoria Caché, habitualmente dividida en niveles (L1, L2 y L3). La unidad mínima de transferencia de información entre la RAM principal y la memoria caché no es un byte aislado, sino un bloque continuo de datos denominado línea de caché (\textit{cache line}), que en las arquitecturas modernas suele constar de 64 bytes \parencite{Drepper2007Memory}.
+
+Esta transferencia por bloques está fundamentada en el principio de localidad espacial de memoria, un concepto empírico que dicta que si un programa accede a una dirección de memoria, es inminentemente probable que acceda a las direcciones adyacentes a continuación. En lenguajes de programación como C, las matrices bidimensionales se almacenan en la memoria RAM de manera contigua organizadas por filas (\textit{row-major order}). Durante la multiplicación matricial clásica iterativa, la segunda matriz se recorre inevitablemente por columnas; este patrón de acceso ortogonal rompe por completo la localidad espacial. Al intentar leer datos saltando grandes bloques de memoria, los valores necesarios no se encuentran en la línea de caché cargada, provocando fallos de caché (\textit{cache misses}) que obligan al procesador a detenerse (\textit{stall}) mientras busca los datos nuevamente en la lenta memoria RAM, lo cual penaliza severamente el desempeño del algoritmo \parencite{Patterson2017Computer}.
+
+\subsection{Optimización Algorítmica y Aprovechamiento de la Caché}
+Aunque la paralelización distribuye la carga de trabajo, el cuello de botella de la memoria solo puede resolverse reestructurando el algoritmo subyacente. La estrategia de optimización más directa para la multiplicación de matrices en C consiste en el intercambio de bucles (\textit{loop interchange}). Altera el orden tradicional de los ciclos anidados de \(i, j, k\) a \(i, k, j\). Matemáticamente, el resultado es idéntico, pero a nivel de hardware, el bucle más interno ahora recorre las matrices \(B\) y \(C\) estrictamente por filas. Esto garantiza que el procesador consuma por completo los 64 bytes de cada línea de caché (\textit{cache line}) cargada antes de solicitar la siguiente, aprovechando al máximo la localidad espacial y reduciendo las penalizaciones por fallos de caché en órdenes de magnitud \parencite{Lam1991Cache}.
+
+Para matrices masivas que exceden la capacidad total de la memoria caché (L1 y L2), la literatura de HPC emplea una técnica avanzada denominada multiplicación por bloques o \textit{Loop Tiling}. Este método particiona las matrices originales en submatrices (o bloques) de un tamaño cuidadosamente calculado para que residan por completo dentro de la caché rápida del procesador. En lugar de multiplicar filas y columnas completas, el algoritmo opera sobre estos bloques aislados, reutilizando los datos cargados repetidas veces antes de que el controlador de memoria los descarte (\textit{eviction}). Esta técnica transforma un problema limitado por el ancho de banda de la memoria (\textit{memory-bound}) en uno puramente computacional (\textit{compute-bound}) \parencite{Grama2003Introduction}.
+
+\subsection{Optimización a Nivel de Compilador}
+El desarrollo en lenguajes de bajo nivel como C delega un porcentaje crítico del rendimiento final al compilador (como GCC o Clang). La optimización por compilador consiste en un conjunto de transformaciones semánticas que el traductor aplica sobre el código fuente para generar un código máquina altamente eficiente, sin alterar la lógica del programa. Mediante el uso de banderas de optimización agresivas (típicamente \texttt{-O2} o \texttt{-O3}), el compilador realiza análisis de flujo de datos para aplicar mejoras automáticas como la eliminación de código muerto y la propagación de constantes \parencite{Allen2001Optimizing}.
+
+Para algoritmos intensivos iterativos como la multiplicación matricial, dos optimizaciones de compilador son vitales. La primera es el desenrollado de bucles (\textit{loop unrolling}), que reduce la sobrecarga de evaluar repetidamente la condición de parada del bucle replicando el cuerpo de las instrucciones. La segunda es la autovectorización, donde el compilador detecta operaciones matemáticas independientes y las agrupa utilizando instrucciones SIMD (\textit{Single Instruction, Multiple Data}). Con banderas como \texttt{-march=native}, el compilador explota las extensiones vectoriales específicas del hardware local (como AVX2 o AVX-512 en procesadores Intel/AMD), permitiendo multiplicar múltiples pares de números de punto flotante en un único ciclo de reloj, complementando perfectamente el paralelismo de hilos de alto nivel \parencite{Patterson2017Computer}.
+
+\subsection{Métricas de Rendimiento en Computación Secuencial}
+El análisis de un algoritmo secuencial requiere establecer una línea base absoluta sobre la cual evaluar cualquier mejora algorítmica o de hardware. La métrica fundamental empírica es el Tiempo de Ejecución (\textit{Wall-clock time}), que representa el tiempo físico real transcurrido desde el inicio hasta la finalización del programa. Sin embargo, dado que este valor fluctúa dependiendo de la interferencia del sistema operativo y los accesos a memoria, la arquitectura de computadores recurre a métricas de rendimiento intrínseco (\textit{throughput}) \parencite{Patterson2017Computer}.
+
+Para cargas de trabajo de alto rendimiento algebraico como la multiplicación de matrices, la métrica estandarizada predominante es el volumen de Operaciones de Punto Flotante por Segundo (FLOPS, por sus siglas en inglés). Esta medida cuantifica el rendimiento matemático bruto del procesador y se define mediante la siguiente relación:
+
+\begin{equation}
+    \text{FLOPS} = \frac{\text{Operaciones Aritméticas Totales}}{T_{\text{ejecución}}}
+\end{equation}
+
+Para el algoritmo clásico iterativo que multiplica dos matrices cuadradas de dimensión \(n \times n\), el número total de operaciones de punto flotante se establece analíticamente en \(2n^3\) (contabilizando una instrucción de multiplicación y una de suma por cada iteración del bucle más interno). Al contrastar los FLOPS experimentales obtenidos en la ejecución secuencial contra el rendimiento teórico máximo (\textit{Peak FLOPS}) que el fabricante del procesador garantiza para un solo núcleo, es posible diagnosticar ineficiencias de memoria o cuellos de botella antes de recurrir a la paralelización \parencite{Hager2010HPC}. 
+
+Adicionalmente, el rendimiento de la ejecución en un único núcleo se evalúa a nivel microarquitectónico mediante el IPC (Instrucciones por Ciclo de reloj). Esta métrica indica la eficiencia con la que el código compilado logra mantener ocupada la segmentación (\textit{pipeline}) del procesador, minimizando las detenciones o burbujas producidas por dependencias de datos en la ejecución lineal \parencite{Yi2020CPI}.
+
+
+\subsection{Métricas de Rendimiento en Computación Paralela}
+Para cuantificar el éxito de una implementación paralela y su eficiencia frente a la ejecución secuencial, la literatura científica emplea métricas matemáticas estandarizadas. La métrica fundamental es el \textit{Speedup} o Aceleración (\(S_p\)), la cual mide la ganancia de velocidad relativa. Se define formalmente como:
+
+\begin{equation}
+    S_p = \frac{T_1}{T_p}
+\end{equation}
+
+donde \(T_1\) representa el tiempo de ejecución del algoritmo secuencial óptimo sobre un único núcleo, y \(T_p\) es el tiempo de ejecución del algoritmo paralelo empleando \(p\) unidades de procesamiento (hilos o procesos). Derivada de esta métrica se encuentra la Eficiencia (\(E_p\)), que evalúa el grado de aprovechamiento de los recursos físicos, indicando qué fracción del tiempo los procesadores realizan trabajo útil sin quedar ociosos:
+
+\begin{equation}
+    E_p = \frac{S_p}{p} = \frac{T_1}{p \cdot T_p}
+\end{equation}
+
+El desempeño asintótico de estos sistemas está regido por dos leyes analíticas que abordan la escalabilidad desde diferentes perspectivas teóricas. La \textbf{Ley de Amdahl} evalúa la \textit{escalabilidad fuerte}, demostrando que el \textit{Speedup} máximo de un sistema está estrictamente limitado por la fracción de código que no se puede paralelizar. Asumiendo un tamaño de problema fijo, la ley se expresa como:
+
+\begin{equation}
+    S_{\text{Amdahl}} \leq \frac{1}{(1 - f) + \frac{f}{p}}
+\end{equation}
+
+donde \(f\) es la fracción del programa que es paralelizable y \((1 - f)\) es la porción estrictamente secuencial (como la inicialización de memoria mediante \texttt{malloc} o la lectura/escritura en disco). Según este postulado matemático, incluso si el número de procesadores \(p\) tiende a infinito, la aceleración máxima nunca superará \(1 / (1 - f)\). Esto explica el rendimiento decreciente observado cuando el uso de múltiples hilos lógicos en un procesador alcanza su límite físico y no aporta mejoras significativas \parencite{Patterson2017Computer}.
+
+En contraste, la \textbf{Ley de Gustafson-Barsis} describe la \textit{escalabilidad débil}. Esta ley argumenta que, en la práctica profesional, los ingenieros no buscan resolver un problema fijo más rápido, sino que utilizan el mayor poder de cómputo para resolver problemas de un tamaño sustancialmente mayor en el mismo marco de tiempo \parencite{Gustafson1988Reevaluating}. Su modelo se define como:
+
+\begin{equation}
+    S_{\text{Gustafson}} = (1 - f) + p \cdot f
+\end{equation}
+
+Bajo la visión de Gustafson, a medida que la dimensión de las matrices crece de forma masiva, la cantidad de operaciones paralelas \(f\) (multiplicaciones flotantes) aumenta drásticamente, haciendo que la fracción secuencial inicial \((1 - f)\) pierda peso relativo. Esto mitiga el cuello de botella pronosticado por Amdahl, permitiendo alcanzar un \textit{Speedup} escalable y un uso altamente eficiente de los recursos al ajustar la carga de trabajo proporcionalmente al hardware.
