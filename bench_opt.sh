@@ -25,10 +25,6 @@
 
 set -euo pipefail
 
-# ---------------------------------------------------------------------------
-# CONFIGURATION
-# ---------------------------------------------------------------------------
-
 SRC_FILES="mul_seq.c matrix_lib.c"
 RESULTS_DIR="results_opt"
 CSV_FILE="${RESULTS_DIR}/data_opt.csv"
@@ -93,30 +89,12 @@ declare -a CONFIGS=(
                    -ffast-math -fomit-frame-pointer"
 )
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-BOLD='\033[1m'
-RESET='\033[0m'
-
-log_info()    { echo -e "${CYAN}[INFO]${RESET}  $*"; }
-log_ok()      { echo -e "${GREEN}[OK]${RESET}    $*"; }
-log_warn()    { echo -e "${YELLOW}[WARN]${RESET}  $*"; }
-log_error()   { echo -e "${RED}[ERROR]${RESET} $*" >&2; }
-log_section() { echo -e "\n${BOLD}${CYAN}=== $* ===${RESET}"; }
+# shellcheck source=bench_utils.sh
+source "$(dirname "$0")/bench_utils.sh"
 
 setup() {
-    mkdir -p "${RESULTS_DIR}" "${BIN_DIR}"
-
-    if [[ -f "${CSV_FILE}" ]]; then
-        local existing=$(( $(wc -l < "${CSV_FILE}") - 1 ))
-        log_warn "Existing CSV detected with ${existing} row(s). Resuming."
-    else
-        echo "config,flags,matrix_size,repetition,wall_time_ms,correct" \
-            > "${CSV_FILE}"
-        log_ok "CSV created: ${CSV_FILE}"
-    fi
+    setup_csv "${RESULTS_DIR}" "${CSV_FILE}" \
+        "config,flags,matrix_size,repetition,wall_time_ms,correct"
 }
 
 compile_config() {
@@ -403,48 +381,6 @@ print_summary() {
     echo ""
     log_ok "Summary saved to: ${SUMMARY_FILE}"
     log_ok "Raw data saved to: ${CSV_FILE}"
-}
-
-optimize_system() {
-    log_section "Optimizing system"
-
-    if sudo cpupower frequency-set -g performance > /dev/null 2>&1; then
-        log_ok "CPU governor: performance"
-    else
-        log_warn "Could not set CPU governor (cpupower not available?)"
-    fi
-
-    if [[ -f /sys/devices/system/cpu/intel_pstate/no_turbo ]]; then
-        echo 1 | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo > /dev/null
-        log_ok "Intel Turbo Boost: disabled"
-    fi
-
-    if [[ -f /sys/devices/system/cpu/cpufreq/boost ]]; then
-        echo 0 | sudo tee /sys/devices/system/cpu/cpufreq/boost > /dev/null
-        log_ok "AMD Turbo Boost: disabled"
-    fi
-
-    sync && echo 3 | sudo tee /proc/sys/vm/drop_caches > /dev/null
-    log_ok "Page cache: cleared"
-
-    echo 0 | sudo tee /proc/sys/kernel/randomize_va_space > /dev/null
-    log_ok "ASLR: disabled"
-}
-
-restore_system() {
-    log_section "Restoring system"
-
-    sudo cpupower frequency-set -g powersave > /dev/null 2>&1 || true
-
-    if [[ -f /sys/devices/system/cpu/intel_pstate/no_turbo ]]; then
-        echo 0 | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo > /dev/null
-    fi
-    if [[ -f /sys/devices/system/cpu/cpufreq/boost ]]; then
-        echo 1 | sudo tee /sys/devices/system/cpu/cpufreq/boost > /dev/null
-    fi
-
-    echo 2 | sudo tee /proc/sys/kernel/randomize_va_space > /dev/null
-    log_ok "System restored."
 }
 
 print_banner() {

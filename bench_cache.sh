@@ -18,10 +18,6 @@
 
 set -euo pipefail
 
-# ---------------------------------------------------------------------------
-# CONFIGURATION
-# ---------------------------------------------------------------------------
-
 BIN_DIR="bin"
 RESULTS_DIR="results_cache"
 CSV_FILE="${RESULTS_DIR}/data_cache.csv"
@@ -40,42 +36,13 @@ MATRIX_SIZES=(1000 2000 3000)
 REPETITIONS=5
 BENCH_CPU="0"
 
-# ---------------------------------------------------------------------------
-# COLORS
-# ---------------------------------------------------------------------------
-
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-BOLD='\033[1m'
-RESET='\033[0m'
-
-log_info()    { echo -e "${CYAN}[INFO]${RESET}  $*"; }
-log_ok()      { echo -e "${GREEN}[OK]${RESET}    $*"; }
-log_warn()    { echo -e "${YELLOW}[WARN]${RESET}  $*"; }
-log_error()   { echo -e "${RED}[ERROR]${RESET} $*" >&2; }
-log_section() { echo -e "\n${BOLD}${CYAN}=== $* ===${RESET}"; }
-
-# ---------------------------------------------------------------------------
-# SETUP
-# ---------------------------------------------------------------------------
+# shellcheck source=bench_utils.sh
+source "$(dirname "$0")/bench_utils.sh"
 
 setup() {
-    mkdir -p "${RESULTS_DIR}" "${BIN_DIR}"
-
-    if [[ -f "${CSV_FILE}" ]]; then
-        local existing=$(( $(wc -l < "${CSV_FILE}") - 1 ))
-        log_warn "Existing CSV detected with ${existing} row(s). Resuming."
-    else
-        echo "impl,matrix_size,repetition,wall_time_ms" > "${CSV_FILE}"
-        log_ok "CSV created: ${CSV_FILE}"
-    fi
+    setup_csv "${RESULTS_DIR}" "${CSV_FILE}" \
+        "impl,matrix_size,repetition,wall_time_ms"
 }
-
-# ---------------------------------------------------------------------------
-# COMPILATION
-# ---------------------------------------------------------------------------
 
 compile_all() {
     log_section "Compiling"
@@ -96,10 +63,6 @@ compile_all() {
         log_info "Cache binary already exists, skipping."
     fi
 }
-
-# ---------------------------------------------------------------------------
-# HELPERS
-# ---------------------------------------------------------------------------
 
 already_done() {
     local impl="$1" size="$2" rep="$3"
@@ -126,45 +89,6 @@ write_row() {
     printf '%s,%s,%s,%s\n' "$1" "$2" "$3" "$4" >> "${CSV_FILE}"
     sync
 }
-
-# ---------------------------------------------------------------------------
-# SYSTEM OPTIMIZATION / RESTORE
-# ---------------------------------------------------------------------------
-
-optimize_system() {
-    log_section "Optimizing system"
-
-    if sudo cpupower frequency-set -g performance > /dev/null 2>&1; then
-        log_ok "CPU governor: performance"
-    else
-        log_warn "Could not set CPU governor (cpupower not available?)"
-    fi
-
-    if [[ -f /sys/devices/system/cpu/cpufreq/boost ]]; then
-        echo 0 | sudo tee /sys/devices/system/cpu/cpufreq/boost > /dev/null
-        log_ok "AMD Turbo: disabled"
-    fi
-
-    sync && echo 3 | sudo tee /proc/sys/vm/drop_caches > /dev/null
-    log_ok "Page cache: cleared"
-
-    echo 0 | sudo tee /proc/sys/kernel/randomize_va_space > /dev/null
-    log_ok "ASLR: disabled"
-}
-
-restore_system() {
-    log_section "Restoring system"
-    sudo cpupower frequency-set -g powersave > /dev/null 2>&1 || true
-    if [[ -f /sys/devices/system/cpu/cpufreq/boost ]]; then
-        echo 1 | sudo tee /sys/devices/system/cpu/cpufreq/boost > /dev/null
-    fi
-    echo 2 | sudo tee /proc/sys/kernel/randomize_va_space > /dev/null
-    log_ok "System restored."
-}
-
-# ---------------------------------------------------------------------------
-# BENCHMARK LOOP
-# ---------------------------------------------------------------------------
 
 run_benchmark() {
     local impls=("std" "cache")
@@ -193,10 +117,6 @@ run_benchmark() {
         done
     done
 }
-
-# ---------------------------------------------------------------------------
-# SUMMARY
-# ---------------------------------------------------------------------------
 
 print_summary() {
     log_section "Results summary"
@@ -292,10 +212,6 @@ print_summary() {
     log_ok "Raw data: ${CSV_FILE}"
 }
 
-# ---------------------------------------------------------------------------
-# BANNER
-# ---------------------------------------------------------------------------
-
 print_banner() {
     echo -e "${BOLD}"
     echo "============================================================"
@@ -309,10 +225,6 @@ print_banner() {
     echo "============================================================"
     echo -e "${RESET}"
 }
-
-# ---------------------------------------------------------------------------
-# MAIN
-# ---------------------------------------------------------------------------
 
 main() {
     print_banner

@@ -56,19 +56,11 @@ ALL_THREAD_COUNTS=(2 4 6 8 12)
 
 RESULTS_DIR="results"
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-BOLD='\033[1m'
-RESET='\033[0m'
+# shellcheck source=bench_utils.sh
+source "$(dirname "$0")/bench_utils.sh"
 
-log_info()    { echo -e "${CYAN}[INFO]${RESET}  $*"; }
-log_ok()      { echo -e "${GREEN}[OK]${RESET}    $*"; }
-log_warn()    { echo -e "${YELLOW}[WARN]${RESET}  $*"; }
-log_error()   { echo -e "${RED}[ERROR]${RESET} $*" >&2; }
-log_skip()    { echo -e "  ${YELLOW}[SKIP]${RESET}  $*"; }
-log_section() { echo -e "\n${BOLD}${CYAN}=== $* ===${RESET}"; }
+log_skip() { echo -e "  ${YELLOW}[SKIP]${RESET}  $*"; }
+
 
 print_banner() {
     local label="${MODE}"
@@ -161,55 +153,6 @@ run_all() {
     (( failed == 0 ))
 }
 
-optimize_system() {
-    log_section "Optimizing system for benchmark"
-
-    if sudo cpupower frequency-set -g performance > /dev/null 2>&1; then
-        log_ok "CPU governor: performance"
-    else
-        log_warn "Could not change CPU governor (is cpupower installed?)"
-    fi
-
-    if [[ -f /sys/devices/system/cpu/intel_pstate/no_turbo ]]; then
-        echo 1 | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo > /dev/null
-        log_ok "Intel Turbo Boost: disabled"
-    fi
-
-    if [[ -f /sys/devices/system/cpu/cpufreq/boost ]]; then
-        echo 0 | sudo tee /sys/devices/system/cpu/cpufreq/boost > /dev/null
-        log_ok "AMD Turbo Boost: disabled"
-    fi
-
-    sync && echo 3 | sudo tee /proc/sys/vm/drop_caches > /dev/null
-    log_ok "Page cache: cleared"
-
-    echo 0 | sudo tee /proc/sys/kernel/randomize_va_space > /dev/null
-    log_ok "ASLR: disabled"
-}
-
-restore_system() {
-    log_section "Restoring system"
-
-    if sudo cpupower frequency-set -g powersave > /dev/null 2>&1; then
-        log_ok "CPU governor: powersave"
-    fi
-
-    if [[ -f /sys/devices/system/cpu/intel_pstate/no_turbo ]]; then
-        echo 0 | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo > /dev/null
-        log_ok "Intel Turbo Boost: restored"
-    fi
-
-    if [[ -f /sys/devices/system/cpu/cpufreq/boost ]]; then
-        echo 1 | sudo tee /sys/devices/system/cpu/cpufreq/boost > /dev/null
-        log_ok "AMD Turbo Boost: restored"
-    fi
-
-    echo 2 | sudo tee /proc/sys/kernel/randomize_va_space > /dev/null
-    log_ok "ASLR: restored"
-
-    log_ok "System restored successfully."
-}
-
 compile_project() {
     log_section "Compilation"
 
@@ -245,20 +188,10 @@ get_sequential_csv() {
     echo "${RESULTS_DIR}/data_sequential.csv"
 }
 
-setup_csv() {
-    mkdir -p "${RESULTS_DIR}"
+init_report_csv() {
     REPORT_FILE="$(get_csv_path)"
-
-    if [[ -f "${REPORT_FILE}" ]]; then
-        local existing
-        existing=$(( $(wc -l < "${REPORT_FILE}") - 1 ))
-        log_warn "Existing CSV detected with ${existing} measurement(s): ${REPORT_FILE}"
-        log_warn "Already completed tests will be skipped automatically."
-    else
-        echo "mode,threads,matrix_size,repetition,wall_time_ms,exit_code" \
-            > "${REPORT_FILE}"
-        log_ok "New CSV created: ${REPORT_FILE}"
-    fi
+    setup_csv "${RESULTS_DIR}" "${REPORT_FILE}" \
+        "mode,threads,matrix_size,repetition,wall_time_ms,exit_code"
 }
 
 write_measurement() {
@@ -432,7 +365,7 @@ main() {
 
     optimize_system
     compile_project
-    setup_csv
+    init_report_csv
     run_benchmark
     print_summary
 }
