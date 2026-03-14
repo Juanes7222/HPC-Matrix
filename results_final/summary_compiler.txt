@@ -1,0 +1,22 @@
+
+Suite     : compiler
+Date      : 2026-03-14 09:31:45
+Host      : juanes-ms7e26
+GCC       : gcc (GCC) 15.2.1 20260209
+Sizes     : 400 800 1600 3200 6400
+Reps      : 10
+Reference : seq_std (threads=0)
+
+Average wall time (ms)
+=======================================================================
+Impl/Threads/Tag                N=400      N=800     N=1600     N=3200     N=6400  Avg Speedup
+--------------------------  ---------  ---------  ---------  ---------  ---------  ----------
+conc/noopt                      154.9     1374.6    11189.6   109798.6  1014066.2        .273x
+seq_std/best                     30.1      312.1     2543.1    35540.4   399073.0       1.000x
+threads_2t/noopt                 77.7      693.3     5596.9    63307.7   539134.0        .518x
+threads_4t/noopt                 39.2      348.6     2817.0    31077.5   272330.1       1.035x
+threads_6t/noopt                 27.1      231.5     1901.8    19903.1   183628.2       1.551x
+threads_8t/noopt                 38.6      342.6     2779.0    30635.5   269780.4       1.048x
+threads_12t/noopt                27.3      241.3     1906.2    20080.9   195798.8       1.507x
+
+Speedup = T(reference) / T(row)  (>1 means row is faster than reference)

@@ -23,6 +23,7 @@
 # =============================================================================
 
 set -euo pipefail
+export LC_NUMERIC=C
 
 # shellcheck source=bench_utils.sh
 source "$(dirname "$0")/bench_utils.sh"
@@ -31,8 +32,8 @@ source "$(dirname "$0")/bench_utils.sh"
 BIN_DIR="bin"
 RESULTS_DIR="results_final"
 
-MATRIX_SIZES=(400 800 1600 3200)
-REPETITIONS=5
+MATRIX_SIZES=(400 800 1600 3200 6400)
+REPETITIONS=10
 BENCH_CPUS="0,1,2,3,4,5,6,7,8,9,10,11"
 BENCH_CPU_SINGLE="0"
 
@@ -134,7 +135,6 @@ compile_suite_binaries() {
             compile_binary conc     "${NOOPT_FLAGS}"
             ;;
         cache)
-            compile_binary seq_std   "${NOOPT_FLAGS}"
             compile_binary seq_cache "${NOOPT_FLAGS}"
             ;;
         mixed)
@@ -252,7 +252,6 @@ run_suite_cache() {
     setup_csv "${RESULTS_DIR}" "${csv}" "${CSV_HEADER}"
 
     local entries=(
-        "seq_std|${NOOPT_FLAGS}|0"
         "seq_cache|${NOOPT_FLAGS}|0"
     )
     run_entries "cache" "${entries[@]}"

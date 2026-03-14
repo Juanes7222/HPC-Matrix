@@ -1,0 +1,17 @@
+
+Suite     : cache
+Date      : 2026-03-14 09:31:45
+Host      : juanes-ms7e26
+GCC       : gcc (GCC) 15.2.1 20260209
+Sizes     : 400 800 1600 3200 6400
+Reps      : 10
+Reference : seq_std (threads=0)
+
+Average wall time (ms)
+=======================================================================
+Impl/Threads/Tag                N=400      N=800     N=1600     N=3200     N=6400  Avg Speedup
+--------------------------  ---------  ---------  ---------  ---------  ---------  ----------
+seq_cache/noopt                 147.0     1166.9     9332.5    74710.7   599295.1       1.387x
+seq_std/noopt                   154.2     1374.7    11184.9   124522.2  1105201.0       1.000x
+
+Speedup = T(reference) / T(row)  (>1 means row is faster than reference)

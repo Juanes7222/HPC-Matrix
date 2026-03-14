@@ -1,0 +1,351 @@
+suite,impl,flags,threads,matrix_size,repetition,wall_time_ms
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,400,1,30.005
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,800,1,312.955
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,1600,1,2540.758
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,3200,1,36022.321
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,400,2,30.071
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,800,2,312.064
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,1600,2,2540.398
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,3200,2,35590.382
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,400,3,30.091
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,800,3,312.066
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,1600,3,2550.371
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,3200,3,35602.554
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,400,4,30.147
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,800,4,312.059
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,1600,4,2543.867
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,3200,4,35751.773
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,400,5,30.083
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,800,5,312.649
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,1600,5,2541.859
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,3200,5,35526.842
+compiler,threads,"-Wall",2,400,1,78.584
+compiler,threads,"-Wall",2,800,1,701.624
+compiler,threads,"-Wall",2,1600,1,5570.639
+compiler,threads,"-Wall",2,3200,1,63560.000
+compiler,threads,"-Wall",2,400,2,77.480
+compiler,threads,"-Wall",2,800,2,701.230
+compiler,threads,"-Wall",2,1600,2,5720.959
+compiler,threads,"-Wall",2,3200,2,63517.097
+compiler,threads,"-Wall",2,400,3,77.151
+compiler,threads,"-Wall",2,800,3,701.110
+compiler,threads,"-Wall",2,1600,3,5568.161
+compiler,threads,"-Wall",2,3200,3,63254.180
+compiler,threads,"-Wall",2,400,4,76.873
+compiler,threads,"-Wall",2,800,4,690.388
+compiler,threads,"-Wall",2,1600,4,5574.338
+compiler,threads,"-Wall",2,3200,4,63383.972
+compiler,threads,"-Wall",2,400,5,78.184
+compiler,threads,"-Wall",2,800,5,701.433
+compiler,threads,"-Wall",2,1600,5,5567.155
+compiler,threads,"-Wall",2,3200,5,63546.728
+compiler,threads,"-Wall",4,400,1,39.279
+compiler,threads,"-Wall",4,800,1,350.532
+compiler,threads,"-Wall",4,1600,1,2836.123
+compiler,threads,"-Wall",4,3200,1,31037.650
+compiler,threads,"-Wall",4,400,2,39.042
+compiler,threads,"-Wall",4,800,2,350.697
+compiler,threads,"-Wall",4,1600,2,2832.454
+compiler,threads,"-Wall",4,3200,2,31051.295
+compiler,threads,"-Wall",4,400,3,39.663
+compiler,threads,"-Wall",4,800,3,349.995
+compiler,threads,"-Wall",4,1600,3,2835.699
+compiler,threads,"-Wall",4,3200,3,31196.726
+compiler,threads,"-Wall",4,400,4,39.468
+compiler,threads,"-Wall",4,800,4,349.534
+compiler,threads,"-Wall",4,1600,4,2785.878
+compiler,threads,"-Wall",4,3200,4,31248.556
+compiler,threads,"-Wall",4,400,5,38.631
+compiler,threads,"-Wall",4,800,5,345.482
+compiler,threads,"-Wall",4,1600,5,2784.701
+compiler,threads,"-Wall",4,3200,5,31037.128
+compiler,threads,"-Wall",6,400,1,27.177
+compiler,threads,"-Wall",6,800,1,231.425
+compiler,threads,"-Wall",6,1600,1,1925.535
+compiler,threads,"-Wall",6,3200,1,19635.070
+compiler,threads,"-Wall",6,400,2,27.103
+compiler,threads,"-Wall",6,800,2,231.266
+compiler,threads,"-Wall",6,1600,2,1898.067
+compiler,threads,"-Wall",6,3200,2,20025.583
+compiler,threads,"-Wall",6,400,3,27.247
+compiler,threads,"-Wall",6,800,3,231.623
+compiler,threads,"-Wall",6,1600,3,1901.463
+compiler,threads,"-Wall",6,3200,3,19810.115
+compiler,threads,"-Wall",6,400,4,27.055
+compiler,threads,"-Wall",6,800,4,232.311
+compiler,threads,"-Wall",6,1600,4,1898.751
+compiler,threads,"-Wall",6,3200,4,19818.645
+compiler,threads,"-Wall",6,400,5,26.886
+compiler,threads,"-Wall",6,800,5,231.015
+compiler,threads,"-Wall",6,1600,5,1900.755
+compiler,threads,"-Wall",6,3200,5,20160.773
+compiler,threads,"-Wall",8,400,1,38.630
+compiler,threads,"-Wall",8,800,1,343.125
+compiler,threads,"-Wall",8,1600,1,2776.722
+compiler,threads,"-Wall",8,3200,1,30571.130
+compiler,threads,"-Wall",8,400,2,38.790
+compiler,threads,"-Wall",8,800,2,342.405
+compiler,threads,"-Wall",8,1600,2,2784.369
+compiler,threads,"-Wall",8,3200,2,30808.821
+compiler,threads,"-Wall",8,400,3,38.659
+compiler,threads,"-Wall",8,800,3,342.119
+compiler,threads,"-Wall",8,1600,3,2775.761
+compiler,threads,"-Wall",8,3200,3,30574.483
+compiler,threads,"-Wall",8,400,4,38.343
+compiler,threads,"-Wall",8,800,4,341.964
+compiler,threads,"-Wall",8,1600,4,2776.769
+compiler,threads,"-Wall",8,3200,4,30744.951
+compiler,threads,"-Wall",8,400,5,38.493
+compiler,threads,"-Wall",8,800,5,342.599
+compiler,threads,"-Wall",8,1600,5,2782.608
+compiler,threads,"-Wall",8,3200,5,30672.909
+compiler,threads,"-Wall",12,400,1,27.135
+compiler,threads,"-Wall",12,800,1,241.861
+compiler,threads,"-Wall",12,1600,1,1930.823
+compiler,threads,"-Wall",12,3200,1,20183.973
+compiler,threads,"-Wall",12,400,2,27.523
+compiler,threads,"-Wall",12,800,2,239.888
+compiler,threads,"-Wall",12,1600,2,1896.905
+compiler,threads,"-Wall",12,3200,2,20253.136
+compiler,threads,"-Wall",12,400,3,27.098
+compiler,threads,"-Wall",12,800,3,241.346
+compiler,threads,"-Wall",12,1600,3,1885.993
+compiler,threads,"-Wall",12,3200,3,20032.987
+compiler,threads,"-Wall",12,400,4,27.452
+compiler,threads,"-Wall",12,800,4,240.599
+compiler,threads,"-Wall",12,1600,4,1894.744
+compiler,threads,"-Wall",12,3200,4,20011.600
+compiler,threads,"-Wall",12,400,5,27.533
+compiler,threads,"-Wall",12,800,5,240.538
+compiler,threads,"-Wall",12,1600,5,1936.175
+compiler,threads,"-Wall",12,3200,5,19980.713
+compiler,conc,"-Wall",0,400,1,156.000
+compiler,conc,"-Wall",0,800,1,1375.527
+compiler,conc,"-Wall",0,1600,1,11178.613
+compiler,conc,"-Wall",0,3200,1,109797.210
+compiler,conc,"-Wall",0,400,2,155.131
+compiler,conc,"-Wall",0,800,2,1375.719
+compiler,conc,"-Wall",0,1600,2,11179.959
+compiler,conc,"-Wall",0,3200,2,109817.020
+compiler,conc,"-Wall",0,400,3,155.475
+compiler,conc,"-Wall",0,800,3,1375.596
+compiler,conc,"-Wall",0,1600,3,11207.229
+compiler,conc,"-Wall",0,3200,3,109858.152
+compiler,conc,"-Wall",0,400,4,154.892
+compiler,conc,"-Wall",0,800,4,1377.276
+compiler,conc,"-Wall",0,1600,4,11202.971
+compiler,conc,"-Wall",0,3200,4,109860.838
+compiler,conc,"-Wall",0,400,5,155.996
+compiler,conc,"-Wall",0,800,5,1376.703
+compiler,conc,"-Wall",0,1600,5,11199.416
+compiler,conc,"-Wall",0,3200,5,109840.789
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,6400,1,434910.671
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,6400,2,344113.604
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,6400,3,365954.583
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,6400,4,334690.484
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,6400,5,341364.101
+compiler,threads,"-Wall",2,6400,1,481391.665
+compiler,threads,"-Wall",2,6400,2,564437.274
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,400,6,30.026
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,800,6,311.893
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,1600,6,2546.591
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,3200,6,35525.175
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,6400,6,510874.781
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,400,7,30.062
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,800,7,312.047
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,1600,7,2541.431
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,3200,7,35557.655
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,6400,7,505512.386
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,400,8,30.237
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,800,8,311.989
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,1600,8,2543.702
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,3200,8,35225.193
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,6400,8,502152.475
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,400,9,30.240
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,800,9,311.605
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,1600,9,2539.963
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,3200,9,35261.713
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,6400,9,325713.787
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,400,10,30.227
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,800,10,311.890
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,1600,10,2542.086
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,3200,10,35340.683
+compiler,seq_std,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",0,6400,10,325443.173
+compiler,threads,"-Wall",2,6400,3,563552.750
+compiler,threads,"-Wall",2,6400,4,564276.365
+compiler,threads,"-Wall",2,6400,5,559626.947
+compiler,threads,"-Wall",2,400,6,78.150
+compiler,threads,"-Wall",2,800,6,685.945
+compiler,threads,"-Wall",2,1600,6,5572.233
+compiler,threads,"-Wall",2,3200,6,63471.746
+compiler,threads,"-Wall",2,6400,6,565896.408
+compiler,threads,"-Wall",2,400,7,77.179
+compiler,threads,"-Wall",2,800,7,688.399
+compiler,threads,"-Wall",2,1600,7,5580.680
+compiler,threads,"-Wall",2,3200,7,63163.276
+compiler,threads,"-Wall",2,6400,7,496146.357
+compiler,threads,"-Wall",2,400,8,77.788
+compiler,threads,"-Wall",2,800,8,685.586
+compiler,threads,"-Wall",2,1600,8,5681.222
+compiler,threads,"-Wall",2,3200,8,62512.786
+compiler,threads,"-Wall",2,6400,8,469160.875
+compiler,threads,"-Wall",2,400,9,77.288
+compiler,threads,"-Wall",2,800,9,688.526
+compiler,threads,"-Wall",2,1600,9,5565.958
+compiler,threads,"-Wall",2,3200,9,63334.870
+compiler,threads,"-Wall",2,6400,9,562554.659
+compiler,threads,"-Wall",2,400,10,78.463
+compiler,threads,"-Wall",2,800,10,688.811
+compiler,threads,"-Wall",2,1600,10,5567.370
+compiler,threads,"-Wall",2,3200,10,63331.956
+compiler,threads,"-Wall",2,6400,10,564297.173
+compiler,threads,"-Wall",4,6400,1,275784.033
+compiler,threads,"-Wall",4,6400,2,274198.226
+compiler,threads,"-Wall",4,6400,3,269616.608
+compiler,threads,"-Wall",4,6400,4,271464.858
+compiler,threads,"-Wall",4,6400,5,270059.275
+compiler,threads,"-Wall",4,400,6,39.159
+compiler,threads,"-Wall",4,800,6,351.887
+compiler,threads,"-Wall",4,1600,6,2837.482
+compiler,threads,"-Wall",4,3200,6,31017.579
+compiler,threads,"-Wall",4,6400,6,272711.540
+compiler,threads,"-Wall",4,400,7,39.612
+compiler,threads,"-Wall",4,800,7,342.809
+compiler,threads,"-Wall",4,1600,7,2839.171
+compiler,threads,"-Wall",4,3200,7,31087.043
+compiler,threads,"-Wall",4,6400,7,270702.724
+compiler,threads,"-Wall",4,400,8,39.208
+compiler,threads,"-Wall",4,800,8,350.621
+compiler,threads,"-Wall",4,1600,8,2841.163
+compiler,threads,"-Wall",4,3200,8,31056.492
+compiler,threads,"-Wall",4,6400,8,270607.971
+compiler,threads,"-Wall",4,400,9,38.758
+compiler,threads,"-Wall",4,800,9,348.857
+compiler,threads,"-Wall",4,1600,9,2789.910
+compiler,threads,"-Wall",4,3200,9,31001.129
+compiler,threads,"-Wall",4,6400,9,272545.776
+compiler,threads,"-Wall",4,400,10,39.099
+compiler,threads,"-Wall",4,800,10,345.251
+compiler,threads,"-Wall",4,1600,10,2787.040
+compiler,threads,"-Wall",4,3200,10,31041.289
+compiler,threads,"-Wall",4,6400,10,275610.292
+compiler,threads,"-Wall",6,6400,1,181488.392
+compiler,threads,"-Wall",6,6400,2,183978.726
+compiler,threads,"-Wall",6,6400,3,184183.954
+compiler,threads,"-Wall",6,6400,4,185783.860
+compiler,threads,"-Wall",6,6400,5,183293.908
+compiler,threads,"-Wall",6,400,6,26.954
+compiler,threads,"-Wall",6,800,6,231.519
+compiler,threads,"-Wall",6,1600,6,1897.427
+compiler,threads,"-Wall",6,3200,6,20028.125
+compiler,threads,"-Wall",6,6400,6,181376.852
+compiler,threads,"-Wall",6,400,7,27.357
+compiler,threads,"-Wall",6,800,7,231.937
+compiler,threads,"-Wall",6,1600,7,1888.214
+compiler,threads,"-Wall",6,3200,7,19926.920
+compiler,threads,"-Wall",6,6400,7,184224.754
+compiler,threads,"-Wall",6,400,8,26.932
+compiler,threads,"-Wall",6,800,8,231.396
+compiler,threads,"-Wall",6,1600,8,1905.779
+compiler,threads,"-Wall",6,3200,8,19848.389
+compiler,threads,"-Wall",6,6400,8,183341.570
+compiler,threads,"-Wall",6,400,9,26.819
+compiler,threads,"-Wall",6,800,9,231.102
+compiler,threads,"-Wall",6,1600,9,1901.984
+compiler,threads,"-Wall",6,3200,9,19797.740
+compiler,threads,"-Wall",6,6400,9,185132.488
+compiler,threads,"-Wall",6,400,10,27.137
+compiler,threads,"-Wall",6,800,10,231.006
+compiler,threads,"-Wall",6,1600,10,1899.542
+compiler,threads,"-Wall",6,3200,10,19979.232
+compiler,threads,"-Wall",6,6400,10,183477.022
+compiler,threads,"-Wall",8,6400,1,271815.447
+compiler,threads,"-Wall",8,6400,2,277199.704
+compiler,threads,"-Wall",8,6400,3,274157.100
+compiler,threads,"-Wall",8,6400,4,275092.675
+compiler,threads,"-Wall",8,6400,5,277316.470
+compiler,threads,"-Wall",8,400,6,38.692
+compiler,threads,"-Wall",8,800,6,343.510
+compiler,threads,"-Wall",8,1600,6,2776.412
+compiler,threads,"-Wall",8,3200,6,30598.206
+compiler,threads,"-Wall",8,6400,6,275895.162
+compiler,threads,"-Wall",8,400,7,38.381
+compiler,threads,"-Wall",8,800,7,342.809
+compiler,threads,"-Wall",8,1600,7,2779.763
+compiler,threads,"-Wall",8,3200,7,30654.460
+compiler,threads,"-Wall",8,6400,7,240644.948
+compiler,threads,"-Wall",8,400,8,38.896
+compiler,threads,"-Wall",8,800,8,342.791
+compiler,threads,"-Wall",8,1600,8,2779.934
+compiler,threads,"-Wall",8,3200,8,30626.555
+compiler,threads,"-Wall",8,6400,8,275247.651
+compiler,threads,"-Wall",8,400,9,38.892
+compiler,threads,"-Wall",8,800,9,342.298
+compiler,threads,"-Wall",8,1600,9,2778.416
+compiler,threads,"-Wall",8,3200,9,30493.412
+compiler,threads,"-Wall",8,6400,9,255196.133
+compiler,threads,"-Wall",8,400,10,38.703
+compiler,threads,"-Wall",8,800,10,342.500
+compiler,threads,"-Wall",8,1600,10,2779.015
+compiler,threads,"-Wall",8,3200,10,30610.513
+compiler,threads,"-Wall",8,6400,10,275238.700
+compiler,threads,"-Wall",12,6400,1,226602.819
+compiler,threads,"-Wall",12,6400,2,232067.245
+compiler,threads,"-Wall",12,6400,3,189432.855
+compiler,threads,"-Wall",12,6400,4,186765.113
+compiler,threads,"-Wall",12,6400,5,188875.706
+compiler,threads,"-Wall",12,400,6,27.471
+compiler,threads,"-Wall",12,800,6,241.950
+compiler,threads,"-Wall",12,1600,6,1905.557
+compiler,threads,"-Wall",12,3200,6,20052.402
+compiler,threads,"-Wall",12,6400,6,189134.831
+compiler,threads,"-Wall",12,400,7,27.396
+compiler,threads,"-Wall",12,800,7,243.316
+compiler,threads,"-Wall",12,1600,7,1907.132
+compiler,threads,"-Wall",12,3200,7,20210.726
+compiler,threads,"-Wall",12,6400,7,187229.086
+compiler,threads,"-Wall",12,400,8,27.489
+compiler,threads,"-Wall",12,800,8,243.256
+compiler,threads,"-Wall",12,1600,8,1897.400
+compiler,threads,"-Wall",12,3200,8,20171.908
+compiler,threads,"-Wall",12,6400,8,186405.010
+compiler,threads,"-Wall",12,400,9,27.182
+compiler,threads,"-Wall",12,800,9,240.299
+compiler,threads,"-Wall",12,1600,9,1905.931
+compiler,threads,"-Wall",12,3200,9,20018.515
+compiler,threads,"-Wall",12,6400,9,185067.773
+compiler,threads,"-Wall",12,400,10,27.074
+compiler,threads,"-Wall",12,800,10,240.382
+compiler,threads,"-Wall",12,1600,10,1900.956
+compiler,threads,"-Wall",12,3200,10,19892.782
+compiler,threads,"-Wall",12,6400,10,186407.894
+compiler,conc,"-Wall",0,6400,1,1013929.815
+compiler,conc,"-Wall",0,6400,2,1014551.176
+compiler,conc,"-Wall",0,6400,3,1014289.934
+compiler,conc,"-Wall",0,6400,4,1014627.613
+compiler,conc,"-Wall",0,6400,5,1014479.146
+compiler,conc,"-Wall",0,400,6,154.840
+compiler,conc,"-Wall",0,800,6,1372.566
+compiler,conc,"-Wall",0,1600,6,11141.053
+compiler,conc,"-Wall",0,3200,6,109755.692
+compiler,conc,"-Wall",0,6400,6,1013934.964
+compiler,conc,"-Wall",0,400,7,153.723
+compiler,conc,"-Wall",0,800,7,1372.336
+compiler,conc,"-Wall",0,1600,7,11188.040
+compiler,conc,"-Wall",0,3200,7,109808.912
+compiler,conc,"-Wall",0,6400,7,1012823.057
+compiler,conc,"-Wall",0,400,8,153.982
+compiler,conc,"-Wall",0,800,8,1375.187
+compiler,conc,"-Wall",0,1600,8,11165.674
+compiler,conc,"-Wall",0,3200,8,109762.283
+compiler,conc,"-Wall",0,6400,8,1012780.727
+compiler,conc,"-Wall",0,400,9,154.943
+compiler,conc,"-Wall",0,800,9,1372.860
+compiler,conc,"-Wall",0,1600,9,11231.768
+compiler,conc,"-Wall",0,3200,9,109754.716
+compiler,conc,"-Wall",0,6400,9,1015600.567
+compiler,conc,"-Wall",0,400,10,154.237
+compiler,conc,"-Wall",0,800,10,1372.483
+compiler,conc,"-Wall",0,1600,10,11201.192
+compiler,conc,"-Wall",0,3200,10,109730.494
+compiler,conc,"-Wall",0,6400,10,1013644.586

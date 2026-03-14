@@ -1,0 +1,22 @@
+
+Suite     : mixed
+Date      : 2026-03-14 09:38:11
+Host      : juanes-ms7e26
+GCC       : gcc (GCC) 15.2.1 20260209
+Sizes     : 400 800 1600 3200 6400
+Reps      : 10
+Reference : seq_cache (threads=0)
+
+Average wall time (ms)
+=======================================================================
+Impl/Threads/Tag                N=400      N=800     N=1600     N=3200     N=6400  Avg Speedup
+--------------------------  ---------  ---------  ---------  ---------  ---------  ----------
+conc/best                        33.9      354.2     2847.5    29630.4   389884.9        .372x
+seq_cache/best                   17.7      141.7     1125.5     9297.2    90330.9       1.000x
+threads_2t/best                  15.1      156.4     1277.2    18848.1   222488.2        .771x
+threads_4t/best                   7.6       78.8      641.8     9279.9   122095.9       1.521x
+threads_6t/best                   5.4       52.8      429.8     6036.0    82004.9       2.247x
+threads_8t/best                   7.6       77.9      635.2     9180.2   124042.0       1.532x
+threads_12t/best                  5.7       55.6      436.7     6106.2    82384.7       2.166x
+
+Speedup = T(reference) / T(row)  (>1 means row is faster than reference)
