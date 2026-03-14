@@ -1,0 +1,17 @@
+
+
+%===================================
+%===================================
+\section{Pruebas}
+\label{sec:Pruebas}
+
+En esta sección se presentan los resultados obtenidos a partir de la ejecución de las tres implementaciones de la multiplicación de matrices: secuencial, concurrente con hilos y paralela con procesos. Se describen los experimentos realizados, los datos recopilados y el análisis de los resultados en términos de tiempos de ejecución y métricas de rendimiento como el Speedup.
+Se probó el algoritmo para la multiplicación de matrices generando matrices cuadradas de dimensiones 400, 800, 1600, 3200 y 6400 respectivamente. El tiempo descrito en cada tabla se encuentra en milisegundos (ms). Se analizaron los distintos métodos evaluando los recursos consumidos como el tiempo; se sacaron algunas gráficas para mostrar los resultados obtenidos. 
+
+
+\input{caps/test/secuencial.tex}
+
+\input{caps/test/threads.tex}
+
+
+
