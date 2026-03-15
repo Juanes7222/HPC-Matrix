@@ -1,5 +1,5 @@
 """
-report_final.py  --  HPC benchmark report (bench_final.sh real data).
+report.py  --  HPC benchmark report (bench_final.sh real data).
 
 Table layout (pivoted for readability):
   One block per implementation:
@@ -13,7 +13,7 @@ Speedup table below (one row per impl):
   Impl | N=400 avg | sp | N=800 avg | sp | ... | Avg Speedup
 
 Usage:
-    python report_final.py [results_dir/] [csv_src_dir/]
+    python report.py [results_dir/] [csv_src_dir/]
     Defaults: results_dir = results_final/  csv_src = same as results_dir
 """
 
@@ -560,19 +560,19 @@ def main() -> None:
                           Row("seq_cache", 0, "best")]
              if r in all_reps]
 
-    ref4  = Row("conc", 0, "noopt")
-    rows4 = [r for r in [ref4, Row("conc", 0, "best")] if r in all_reps]
+    ref4  = Row("seq_std", 0, "best")
+    rows4 = [r for r in [ref4,
+                          Row("conc", 0, "noopt"),
+                          Row("conc", 0, "best")]
+             if r in all_reps]
 
-    ref5       = Row("seq_std", 0, "best")
-    bt_noopt   = best_thread(avg_data, sizes, "noopt", ref5)
-    bt_best    = best_thread(avg_data, sizes, "best",  ref5)
+    ref5  = Row("seq_std", 0, "best")
     rows5 = [r for r in [
-        ref5, bt_noopt, bt_best,
-        Row("seq_cache", 0, "noopt"),
+        ref5,
+        Row("threads", 6, "best"),
         Row("seq_cache", 0, "best"),
-        Row("conc",      0, "noopt"),
-        Row("conc",      0, "best"),
-    ] if r is not None and r in all_reps]
+        Row("conc", 0, "best"),
+    ] if r in all_reps]
 
     ref6  = Row("seq_std", 0, "best")
     rows6 = [r for r in (
@@ -602,8 +602,8 @@ def main() -> None:
         "Tiempo  |  Cache: naive/best vs cache/noopt vs cache/best",
         "Speedup  |  ref = seq_std/best")
     ct4, cs4 = gen("s4", rows4, ref4,
-        "Tiempo  |  Procesos: sin opt vs con O3_full",
-        "Speedup  |  ref = conc/noopt")
+        "Tiempo  |  Procesos: sin opt vs con O3_full  vs  Secuencial naive/best",
+        "Speedup  |  ref = seq_std/best")
     ct5, cs5 = gen("s5", rows5, ref5,
         "Tiempo  |  Mejor de cada estrategia",
         "Speedup  |  ref = seq_std/best")
@@ -626,7 +626,7 @@ def main() -> None:
                 "Cache line  |  seq_std/best  vs  seq_cache/noopt  vs  seq_cache/best",
                 rows3, all_reps, ref3, sizes, ct3, cs3)
     write_sheet(wb, "4. Procesos",
-                "Procesos (fork)  |  conc/noopt  vs  conc/best  |  ref = conc/noopt",
+                "Procesos (fork)  |  conc/noopt  vs  conc/best  vs  seq_std/best  |  ref = seq_std/best",
                 rows4, all_reps, ref4, sizes, ct4, cs4)
     write_sheet(wb, "5. Comparacion final",
                 "Comparacion final  |  Mejor de cada estrategia  |  ref = seq_std/best",
@@ -637,10 +637,6 @@ def main() -> None:
 
     wb.save(OUTPUT_PATH)
     print(f"\nSaved: {OUTPUT_PATH}")
-    if bt_noopt:
-        print(f"  Mejor hilo sin opt : {bt_noopt.short_label}")
-    if bt_best:
-        print(f"  Mejor hilo con opt : {bt_best.short_label}")
 
     print("\nExporting table PNGs...")
     table_specs = [
@@ -764,10 +760,10 @@ def export_table_png(rows: list[Row], all_reps: AllReps,
             x0 = x_pos[ci]
             x1 = x_pos[ci + 1]
             rect = mpatches.Rectangle((x0, row_bot), x1 - x0,
-                                      row_h / fig_h,
-                                      transform=ax.transAxes,
-                                      facecolor=bg, edgecolor="#BDD7EE",
-                                      linewidth=0.4, clip_on=False)
+                                  row_h / fig_h,
+                                  transform=ax.transAxes,
+                                  facecolor=bg, edgecolor="#BDD7EE",
+                                  linewidth=0.4, clip_on=False)
             ax.add_patch(rect)
             ha   = "left" if ci == 0 else "center"
             pad  = 0.008 if ci == 0 else 0
