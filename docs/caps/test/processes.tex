@@ -33,4 +33,11 @@ En esta sección se presentan los resultados obtenidos al ejecutar el algoritmo 
    \label{fig:speedup_procesos}  
 \end{figure}
 
+\begin{figure}[H]
+   \centering
+   \includegraphics[width=1\textwidth]{images/tables/speedup_fork.png}
+   \caption{Tabla de Speedup del algoritmo concurrente por procesos.}
+   \label{fig:speedup_procesos}  
+\end{figure}
+
 En este caso se puede observar que el algoritmo concurrente por procesos no muestra una mejora significativa en el tiempo de ejecución en comparación con el algoritmo secuencial, especialmente para tamaños de matrices pequeñas. Aún si observamos la el speedup del algoritmo concurrente por procesos, no se aprecia una mejora en el rendimiento, lo que sugiere que la sobrecarga de crear y gestionar procesos puede estar afectando negativamente el rendimiento del algoritmo. Sin embargo, es importante destacar que para tamaños de matrices más grandes, el algoritmo concurrente por procesos podría mostrar una mejora en el rendimiento, aunque esto no se refleja claramente en los resultados obtenidos en este caso.

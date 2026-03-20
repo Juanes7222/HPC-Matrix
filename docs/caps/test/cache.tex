@@ -32,4 +32,12 @@ En esta sección se presentan los resultados obtenidos al ejecutar el algoritmo 
    \label{fig:speedup_cache}
 \end{figure}
 
+\begin{figure}[H]
+   \centering
+   \includegraphics[width=1\textwidth]{images/tables/speedup_cache.png}
+   \caption{Tabla de Speedup del algoritmo secuencial optimizado por cache line.}
+   \label{fig:speedup_cache}
+\end{figure}
+
+
 Para este caso se puede observar que el algoritmo secuencial optimizado por cache line no muestra una mejora significativa en el tiempo de ejecución en comparación con el algoritmo secuencial con optimización por compilador. Sin embargo, el algoritmo optimizado por cache line con optimización por compilador muestra una mejora en el rendimiento, especialmente para tamaños de matrices más grandes, esto se puede obseer en la gráfica de Speedup, donde se aprecia una mejora en el rendimiento del algoritmo optimizado por cache line con optimización por compilador en comparación con el algoritmo secuencial con optimización por compilador. Esto sugiere que la optimización por cache line puede ser efectiva para mejorar el rendimiento del algoritmo de multiplicación de matrices, especialmente para tamaños de matrices más grandes.
