@@ -43,7 +43,7 @@ from report_utils import (
 # Paths
 # ---------------------------------------------------------------------------
 
-RESULTS_DIR = sys.argv[1].rstrip("/") if len(sys.argv) > 1 else "results_final"
+RESULTS_DIR = sys.argv[1].rstrip("/") if len(sys.argv) > 1 else "tests/benchmarks/machine1/results_final"
 SRC_DIR     = sys.argv[2].rstrip("/") if len(sys.argv) > 2 else RESULTS_DIR
 OUTPUT_PATH = os.path.join(RESULTS_DIR, "reporte_final.xlsx")
 CHARTS_DIR  = os.path.join(RESULTS_DIR, "charts_final")

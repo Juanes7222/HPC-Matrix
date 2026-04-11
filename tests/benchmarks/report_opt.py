@@ -17,7 +17,7 @@ from report_utils import (
     cv_per_group, compute_averages,
 )
 
-CSV_PATH    = sys.argv[1] if len(sys.argv) > 1 else "results_opt/data_opt.csv"
+CSV_PATH    = sys.argv[1] if len(sys.argv) > 1 else "tests/benchmarks/machine1/results_opt/data_opt.csv"
 OUT_DIR     = os.path.dirname(os.path.abspath(CSV_PATH))
 OUTPUT_PATH = os.path.join(OUT_DIR, "reporte_opt.xlsx")
 CHARTS_DIR  = os.path.join(OUT_DIR, "charts_opt")

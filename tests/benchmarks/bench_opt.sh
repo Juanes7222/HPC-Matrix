@@ -25,8 +25,10 @@
 
 set -euo pipefail
 
-SRC_FILES="mul_seq.c matrix_lib.c"
-RESULTS_DIR="results_opt"
+cd "$(dirname "$0")/../.."
+
+SRC_FILES="src/sequential/mul_seq.c src/matrix_lib.c"
+RESULTS_DIR="tests/benchmarks/machine1/results_opt"
 CSV_FILE="${RESULTS_DIR}/data_opt.csv"
 SUMMARY_FILE="${RESULTS_DIR}/summary_opt.txt"
 BIN_DIR="bin"
@@ -89,8 +91,8 @@ declare -a CONFIGS=(
                    -ffast-math -fomit-frame-pointer"
 )
 
-# shellcheck source=bench_utils.sh
-source "$(dirname "$0")/bench_utils.sh"
+# shellcheck source=tests/benchmarks/bench_utils.sh
+source "tests/benchmarks/bench_utils.sh"
 
 setup() {
     setup_csv "${RESULTS_DIR}" "${CSV_FILE}" \
@@ -137,7 +139,7 @@ compile_verifier() {
     local flags_clean
     flags_clean=$(echo "${flags}" | tr -s ' ' | xargs)
 
-    if gcc ${flags_clean} -o "${bin}" verify_mul.c matrix_lib.c 2>/dev/null; then
+    if gcc ${flags_clean} -o "${bin}" tests/correctness/verify_mul.c src/matrix_lib.c 2>/dev/null; then
         echo "${bin}"
     else
         echo ""

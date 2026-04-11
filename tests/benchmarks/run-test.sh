@@ -25,12 +25,14 @@
 set -euo pipefail
 export LC_NUMERIC=C
 
-# shellcheck source=bench_utils.sh
-source "$(dirname "$0")/bench_utils.sh"
+cd "$(dirname "$0")/../.."
+
+# shellcheck source=tests/benchmarks/bench_utils.sh
+source "tests/benchmarks/bench_utils.sh"
 
 
 BIN_DIR="bin"
-RESULTS_DIR="results_final"
+RESULTS_DIR="tests/benchmarks/machine1/results_final"
 
 MATRIX_SIZES=(400 800 1600 3200 6400)
 REPETITIONS=10
@@ -75,10 +77,10 @@ bin_path() {
 }
 
 declare -A SRC_FILE=(
-    [seq_std]="mul_seq.c"
-    [seq_cache]="mul_seq_cache.c"
-    [threads]="mul_threads.c"
-    [conc]="mul_conc.c"
+    [seq_std]="src/sequential/mul_seq.c"
+    [seq_cache]="src/sequential/mul_seq_cache.c"
+    [threads]="src/threads/mul_threads.c"
+    [conc]="src/processes/mul_conc.c"
 )
 
 # Extra link flags needed per source key
@@ -112,7 +114,7 @@ compile_binary() {
     local flags_clean
     flags_clean=$(echo "${flags}" | tr -s ' ' | xargs)
 
-    local cmd="gcc ${flags_clean} ${extra} -o ${bin} ${src} matrix_lib.c"
+    local cmd="gcc ${flags_clean} ${extra} -o ${bin} ${src} src/matrix_lib.c"
     log_info "Compiling [${src_key}/${tag}]: ${cmd}"
 
     if eval "${cmd}" 2>/dev/null; then

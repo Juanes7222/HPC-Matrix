@@ -18,14 +18,16 @@
 
 set -euo pipefail
 
+cd "$(dirname "$0")/../.."
+
 BIN_DIR="bin"
-RESULTS_DIR="results_cache"
+RESULTS_DIR="tests/benchmarks/machine1/results_cache"
 CSV_FILE="${RESULTS_DIR}/data_cache.csv"
 SUMMARY_FILE="${RESULTS_DIR}/summary_cache.txt"
 
-SRC_COMMON="matrix_lib.c"
-SRC_STD="mul_seq.c"
-SRC_CACHE="mul_seq_cache.c"
+SRC_COMMON="src/matrix_lib.c"
+SRC_STD="src/sequential/mul_seq.c"
+SRC_CACHE="src/sequential/mul_seq_cache.c"
 
 BIN_STD="${BIN_DIR}/mul_seq_std"
 BIN_CACHE="${BIN_DIR}/mul_seq_cache"
@@ -36,8 +38,8 @@ MATRIX_SIZES=(1000 2000 3000)
 REPETITIONS=5
 BENCH_CPU="0"
 
-# shellcheck source=bench_utils.sh
-source "$(dirname "$0")/bench_utils.sh"
+# shellcheck source=tests/benchmarks/bench_utils.sh
+source "tests/benchmarks/bench_utils.sh"
 
 setup() {
     setup_csv "${RESULTS_DIR}" "${CSV_FILE}" \
