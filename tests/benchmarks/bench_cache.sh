@@ -29,7 +29,7 @@ SRC_COMMON="src/matrix_lib.c"
 SRC_STD="src/sequential/mul_seq.c"
 SRC_CACHE="src/sequential/mul_seq_cache.c"
 
-BIN_STD="${BIN_DIR}/mul_seq_std"
+BIN_STD="${BIN_DIR}/mul_seq"
 BIN_CACHE="${BIN_DIR}/mul_seq_cache"
 
 FLAGS="-Wall"
@@ -47,23 +47,10 @@ setup() {
 }
 
 compile_all() {
-    log_section "Compiling"
+    log_section "Compiling via Makefile"
 
-    if [[ ! -x "${BIN_STD}" ]]; then
-        log_info "Compiling standard: gcc ${FLAGS} -o ${BIN_STD} ${SRC_STD} ${SRC_COMMON}"
-        gcc ${FLAGS} -o "${BIN_STD}" "${SRC_STD}" "${SRC_COMMON}"
-        log_ok "Binary: ${BIN_STD}"
-    else
-        log_info "Standard binary already exists, skipping."
-    fi
-
-    if [[ ! -x "${BIN_CACHE}" ]]; then
-        log_info "Compiling cache-optimized: gcc ${FLAGS} -o ${BIN_CACHE} ${SRC_CACHE} ${SRC_COMMON}"
-        gcc ${FLAGS} -o "${BIN_CACHE}" "${SRC_CACHE}" "${SRC_COMMON}"
-        log_ok "Binary: ${BIN_CACHE}"
-    else
-        log_info "Cache binary already exists, skipping."
-    fi
+    make -B "${BIN_STD}" "${BIN_CACHE}" OPT_FLAGS="${FLAGS}" >/dev/null 2>&1
+    log_ok "Binaries compiled: ${BIN_STD}, ${BIN_CACHE}"
 }
 
 already_done() {

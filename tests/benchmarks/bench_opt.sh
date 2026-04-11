@@ -107,10 +107,10 @@ compile_config() {
     local flags_clean
     flags_clean=$(echo "${flags}" | tr -s ' ' | xargs)
 
-    local cmd="gcc ${flags_clean} -o ${bin} ${SRC_FILES}"
-    log_info "Compiling [${label}]: ${cmd}"
+    log_info "Compiling [${label}] via Makefile with flags: ${flags_clean}"
 
-    if eval "${cmd}" 2>/dev/null; then
+    if make -B bin/mul_seq OPT_FLAGS="${flags_clean}" >/dev/null 2>&1; then
+        mv bin/mul_seq "${bin}"
         log_ok "Binary: ${bin}"
         echo "${bin}"
         return 0
@@ -139,7 +139,8 @@ compile_verifier() {
     local flags_clean
     flags_clean=$(echo "${flags}" | tr -s ' ' | xargs)
 
-    if gcc ${flags_clean} -o "${bin}" tests/correctness/verify_mul.c src/matrix_lib.c 2>/dev/null; then
+    if make -B bin/verify_mul OPT_FLAGS="${flags_clean}" >/dev/null 2>&1; then
+        mv bin/verify_mul "${bin}"
         echo "${bin}"
     else
         echo ""

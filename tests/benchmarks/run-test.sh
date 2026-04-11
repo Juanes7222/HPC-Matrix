@@ -108,16 +108,21 @@ compile_binary() {
         return 1
     fi
 
-    local tag
-    tag="$(flag_tag "${flags}")"
-    local extra="${EXTRA_FLAGS[${src_key}]}"
-    local flags_clean
-    flags_clean=$(echo "${flags}" | tr -s ' ' | xargs)
+    local tag="$(flag_tag "${flags}")"
+    local flags_clean=$(echo "${flags}" | tr -s ' ' | xargs)
 
-    local cmd="gcc ${flags_clean} ${extra} -o ${bin} ${src} src/matrix_lib.c"
-    log_info "Compiling [${src_key}/${tag}]: ${cmd}"
+    local make_target=""
+    case "${src_key}" in
+        seq_std)   make_target="bin/mul_seq" ;;
+        seq_cache) make_target="bin/mul_seq_cache" ;;
+        threads)   make_target="bin/mul_threads" ;;
+        conc)      make_target="bin/mul_conc" ;;
+    esac
 
-    if eval "${cmd}" 2>/dev/null; then
+    log_info "Compiling [${src_key}/${tag}] via Makefile: make -B ${make_target}"
+
+    if make -B "${make_target}" OPT_FLAGS="${flags_clean}" >/dev/null 2>&1; then
+        mv "${make_target}" "${bin}"
         log_ok "Binary: ${bin}"
     else
         log_error "Compilation failed: ${src_key}/${tag}"
