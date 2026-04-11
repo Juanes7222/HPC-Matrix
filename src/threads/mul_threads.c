@@ -83,9 +83,9 @@ int main(int argc, char *argv[]) {
 
     printElapsed(elapsedMs(t_start, t_end));
 
-    printMatrix(matrix1, n);
-    printMatrix(matrix2, n);
-    printMatrix(result,  n);
+    // printMatrix(matrix1, n);
+    // printMatrix(matrix2, n);
+    // printMatrix(result,  n);
 
     free(threads);
     free(args);
