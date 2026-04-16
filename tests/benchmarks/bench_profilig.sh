@@ -42,7 +42,7 @@ compile_binaries() {
     mkdir -p "${BIN_DIR}"
 
     if [[ ! -x "${BIN_PERF}" ]]; then
-        local cmd="gcc -O2 -g -o ${BIN_PERF} ${SRC_FILES}"
+        local cmd="gcc -O2 -g -I./src -o ${BIN_PERF} ${SRC_FILES}"
         log_info "perf/valgrind binary: ${cmd}"
         eval "${cmd}" && log_ok "${BIN_PERF}" || { log_error "Compilation failed"; exit 1; }
     else
@@ -50,7 +50,7 @@ compile_binaries() {
     fi
 
     if [[ ! -x "${BIN_GPROF}" ]]; then
-        local cmd="gcc -O2 -g -pg -o ${BIN_GPROF} ${SRC_FILES}"
+        local cmd="gcc -O2 -g -pg -I./src -o ${BIN_GPROF} ${SRC_FILES}"
         log_info "gprof binary: ${cmd}"
         eval "${cmd}" && log_ok "${BIN_GPROF}" || { log_error "Compilation failed"; exit 1; }
     else
