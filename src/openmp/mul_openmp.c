@@ -1,6 +1,7 @@
 #include <omp.h>
 #include "matrix_lib.h"
 
+
 /*
  * Reads num_threads from argv[2].
  * Exits with a descriptive message if the argument is missing or invalid.
@@ -18,38 +19,34 @@ static int extractThreadCount(int argc, char *argv[]) {
     return threads;
 }
 
+
 /*
  * Multiplies matrix1 * matrix2 and writes the output to result.
- * Row-level parallelism: each thread owns a contiguous block of rows.
- * schedule(static) distributes iterations evenly at compile time,
+ * collapse(2) merges the i and j loops into a single iteration space of n^2,
+ * giving the OpenMP runtime more iterations to distribute across threads and
+ * improving load balance when n is small relative to the thread count.
+ * schedule(static) distributes the collapsed iterations evenly at compile time,
  * which is optimal for the uniform workload of dense matrix multiplication.
+ * unroll partial(4) instructs the OpenMP 5.1 runtime to unroll the innermost
+ * loop in groups of 4, reducing branch overhead and exposing more instruction-
+ * level parallelism to the CPU pipeline.
+ * default(none) forces explicit scoping of all variables, preventing silent
+ * data races. shared() and firstprivate(n) declare their roles explicitly.
  */
 static void multiplyWithOpenMP(int **matrix1, int **matrix2, int **result, int n) {
-    #pragma omp parallel for schedule(static)
+    #pragma omp parallel for schedule(static) collapse(2) \
+        shared(matrix1, matrix2, result) default(none) firstprivate(n)
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
-            result[i][j] = 0;
+            int sum = 0;
+            #pragma omp unroll partial(4)
             for (int k = 0; k < n; k++)
-                result[i][j] += matrix1[i][k] * matrix2[k][j];
+                sum += matrix1[i][k] * matrix2[k][j];
+            result[i][j] = sum;
         }
     }
 }
 
-/*
- * Same as multiplyWithOpenMP but accesses matrix2 in transposed order.
- * Eliminates column-stride cache misses on matrix2 for large N.
- * matrix2 is assumed to already be stored transposed: matrix2T[j][k].
- */
-static void multiplyTransposedWithOpenMP(int **matrix1, int **matrix2T, int **result, int n) {
-    #pragma omp parallel for schedule(static)
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            result[i][j] = 0;
-            for (int k = 0; k < n; k++)
-                result[i][j] += matrix1[i][k] * matrix2T[j][k];
-        }
-    }
-}
 
 int main(int argc, char *argv[]) {
     int n         = extractN(argc, argv);
@@ -74,9 +71,9 @@ int main(int argc, char *argv[]) {
 
     printElapsed(elapsedMs(t_start, t_end));
 
-   //  printMatrix(matrix1, n);
-   //  printMatrix(matrix2, n);
-   //  printMatrix(result, n);
+ // printMatrix(matrix1, n);
+ // printMatrix(matrix2, n);
+ // printMatrix(result, n);
 
     freeMatrix(matrix1, n);
     freeMatrix(matrix2, n);

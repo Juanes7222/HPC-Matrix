@@ -20,7 +20,7 @@ PROCESSES = $(BIN_DIR)/mul_conc
 OPENMP = $(BIN_DIR)/mul_omp
 VERIFY = $(BIN_DIR)/verify_mul
 
-all: setup $(SEQ) $(SEQ_CACHE) $(THREADS) $(PROCESSES) $(VERIFY)
+all: setup $(SEQ) $(SEQ_CACHE) $(THREADS) $(PROCESSES) $(OPENMP) $(VERIFY)
 
 setup:
 	@mkdir -p $(BIN_DIR)
@@ -39,6 +39,9 @@ $(THREADS): $(SRC_DIR)/threads/mul_threads.c $(LIB_OBJ)
 
 $(PROCESSES): $(SRC_DIR)/processes/mul_conc.c $(LIB_OBJ)
 	$(CC) $(CFLAGS) $(OPT_FLAGS) $^ -o $@
+
+$(OPENMP): $(SRC_DIR)/openmp/mul_openmp.c $(LIB_OBJ)
+	$(CC) $(CFLAGS) $(OPT_FLAGS) $(OMP_FLAGS) $^ -o $@
 
 $(VERIFY): $(TESTS_DIR)/correctness/verify_mul.c $(LIB_OBJ)
 	$(CC) $(CFLAGS) $(OPT_FLAGS) $^ -o $@

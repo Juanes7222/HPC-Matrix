@@ -1,0 +1,4 @@
+machine,impl,flags,threads,matrix_size,repetition,wall_time_ms
+machine1,mul_omp,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,400,1,21.408
+machine1,mul_omp,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,800,1,202.308
+machine1,mul_omp,"-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,1600,1,1640.885
