@@ -1,5 +1,5 @@
 === Machine: machine1 ===
-Date       : 2026-04-16 16:38:51
+Date       : 2026-04-16 16:39:32
 Hostname   : archlinux
 OS         : Linux 6.19.8-arch1-1 x86_64
 
@@ -12,7 +12,7 @@ CPU MHz mín.:                             427.3640
 
 --- Memory ---
                total       usado       libre  compartido   búf/caché  disponible
-Mem:            30Gi       4.1Gi        23Gi       148Mi       3.1Gi        26Gi
+Mem:            30Gi       2.5Gi        25Gi        39Mi       3.0Gi        28Gi
 Inter:          31Gi          0B        31Gi
 
 --- GCC ---

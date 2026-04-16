@@ -290,9 +290,6 @@ print_banner() {
     echo -e "${RESET}"
 }
 
-# ---------------------------------------------------------------------------
-# MAIN
-# ---------------------------------------------------------------------------
 
 main() {
     mkdir -p "${RESULTS_DIR}" "${BIN_DIR}"
@@ -304,5 +301,15 @@ main() {
     run_benchmark
     print_summary
 }
+
+if [[ -z "${INHIBITED:-}" ]]; then
+    export INHIBITED=1
+    exec systemd-inhibit \
+        --what=idle:sleep \
+        --who="bench_omp" \
+        --why="OpenMP benchmark running" \
+        --mode=block \
+        bash "$0" "$@"
+fi
 
 main
