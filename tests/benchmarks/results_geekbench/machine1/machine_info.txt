@@ -1,0 +1,22 @@
+=== Machine: machine1 ===
+Date       : 2026-04-16 16:38:51
+Hostname   : archlinux
+OS         : Linux 6.19.8-arch1-1 x86_64
+
+--- CPU ---
+AMD Ryzen 5 7600X 6-Core Processor
+Logical cores : 6
+Physical cores: 6
+CPU MHz máx.:                             5457.1050
+CPU MHz mín.:                             427.3640
+
+--- Memory ---
+               total       usado       libre  compartido   búf/caché  disponible
+Mem:            30Gi       4.1Gi        23Gi       148Mi       3.1Gi        26Gi
+Inter:          31Gi          0B        31Gi
+
+--- GCC ---
+gcc (GCC) 15.2.1 20260209
+
+--- Kernel ---
+Linux archlinux 6.19.8-arch1-1 #1 SMP PREEMPT_DYNAMIC Sat, 14 Mar 2026 01:07:43 +0000 x86_64 GNU/Linux

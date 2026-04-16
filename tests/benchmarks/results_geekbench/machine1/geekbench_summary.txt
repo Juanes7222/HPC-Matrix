@@ -1,0 +1,38 @@
+Geekbench 6.4.0 : https://www.geekbench.com/
+
+Geekbench 6 requires an active internet connection and automatically uploads 
+benchmark results to the Geekbench Browser.
+
+Upgrade to Geekbench 6 Pro to enable offline use and unlock other features:
+
+  https://store.primatelabs.com/v6
+
+Enter your Geekbench 6 Pro license using the following command line:
+
+  tools/geekbench/Geekbench-6.4.0-Linux/geekbench6 --unlock <email> <key>
+
+System Information
+  Operating System              Arch Linux
+  Kernel                        Linux 6.19.8-arch1-1 x86_64
+  Model                         Micro-Star International Co., Ltd. MS-7E26
+  Motherboard                   Micro-Star International Co., Ltd. PRO B650-S WIFI (MS-7E26)
+  BIOS                          American Megatrends International, LLC. 1.M6
+
+CPU Information
+  Name                          AMD Ryzen 5 7600X
+  Topology                      1 Processor, 6 Cores
+  Identifier                    AuthenticAMD Family 25 Model 97 Stepping 2
+  Base Frequency                5.46 GHz
+  L1 Instruction Cache          32.0 KB x 6
+  L1 Data Cache                 32.0 KB x 6
+  L2 Cache                      1.00 MB x 6
+  L3 Cache                      32.0 MB
+  Instruction Sets              sse2 sse3 pclmul fma3 sse41 aesni avx avx2 avx512-f avx512-dq shani avx512-bw avx512-vl vaes avx512-vnni
+
+Memory Information
+  Size                          30.5 GB
+
+
+Single-Core
+  Running File Compression
+  Running Navigation

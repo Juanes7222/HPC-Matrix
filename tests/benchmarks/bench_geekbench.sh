@@ -107,25 +107,55 @@ run_geekbench() {
     local summary_out="${RESULTS_DIR}/geekbench_summary.txt"
     local json_out="${RESULTS_DIR}/geekbench_result.json"
 
-    # Exportar JSON local directamente con --export-json
-    "${GB_BIN}" --cpu --export-json "${json_out}" 2>&1 | tee "${summary_out}" \
+    # Correr sin flags especiales (versión free)
+    "${GB_BIN}" --cpu 2>&1 | tee "${summary_out}" \
         || log_warn "Geekbench exited with non-zero"
 
-    # Guardar URL del resultado por referencia
+    # Extraer URL del resultado
     local result_url
-    result_url=$(grep -oP 'https://browser\.geekbench\.com/v6/cpu/\d+' "${summary_out}" | head -1)
+    result_url=$(grep -oP 'https://browser\.geekbench\.com/v6/cpu/\d+(?!/claim)' "${summary_out}" | head -1)
+
     if [[ -n "${result_url}" ]]; then
         log_info "Result URL: ${result_url}"
         echo "${result_url}" > "${RESULTS_DIR}/result_url.txt"
     else
-        log_warn "No se encontró URL en el output. Revisa: ${summary_out}"
+        log_warn "No se encontró URL de resultado. Revisa: ${summary_out}"
     fi
 
-    # Validar que el JSON fue generado y no está vacío
-    if [[ ! -s "${json_out}" ]]; then
-        log_error "JSON no generado o vacío. Revisa: ${summary_out}"
-        exit 1
-    fi
+    # Extraer scores desde el stdout y guardar como JSON local
+    python3 - "${summary_out}" "${json_out}" << 'EOF'
+import re, json, sys
+
+text = open(sys.argv[1]).read()
+
+def extract_score(label):
+    m = re.search(rf'{label}\s+(\d+)', text)
+    return int(m.group(1)) if m else None
+
+single = extract_score("Single-Core Score")
+multi  = extract_score("Multi-Core Score")
+
+workloads = []
+# Parsear líneas de workloads del output de texto
+for line in text.splitlines():
+    m = re.match(r'\s{2}(\S.+?)\s{2,}(\d+)', line)
+    if m:
+        workloads.append({"name": m.group(1).strip(), "score": int(m.group(2))})
+
+result = {
+    "score": single,
+    "multicore_score": multi,
+    "workloads": workloads
+}
+
+with open(sys.argv[2], "w") as f:
+    json.dump(result, f, indent=2)
+
+print(f"  Single-Core Score : {single}")
+print(f"  Multi-Core  Score : {multi}")
+EOF
+
+    [[ -s "${json_out}" ]] || { log_error "JSON no generado."; exit 1; }
 }
 
 print_summary() {
@@ -133,29 +163,12 @@ print_summary() {
     [[ -f "${json}" ]] || return
 
     log_section "Results for: ${LABEL}"
-    python3 - "${json}" << 'EOF'
+    python3 -c "
 import json, sys
-
-with open(sys.argv[1]) as f:
-    data = json.load(f)
-
-single = data.get("score", "N/A")
-multi  = data.get("multicore_score", "N/A")
-
-print(f"  Single-Core Score : {single}")
-print(f"  Multi-Core  Score : {multi}")
-print("")
-
-for section in data.get("sections", []):
-    name = section.get("name", "")
-    print(f"  [{name}]")
-    for wb in section.get("workloads", []):
-        wname = wb.get("name", "")
-        sc_s  = wb.get("score", "-")
-        sc_m  = wb.get("multicore_score", "-")
-        print(f"    {wname:<35} SC: {sc_s:>6}  MC: {sc_m:>6}")
-    print("")
-EOF
+d = json.load(open('${json}'))
+print(f\"  Single-Core Score : {d.get('score', 'N/A')}\")
+print(f\"  Multi-Core  Score : {d.get('multicore_score', 'N/A')}\")
+"
 }
 
 
