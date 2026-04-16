@@ -26,7 +26,7 @@ cd "$(dirname "$0")/../.."
 source "tests/benchmarks/bench_utils.sh"
 
 
-LABEL="${1:-$(hostname | cut -d. -f1 | sed 's/[^a-zA-Z0-9_]//g')}"
+LABEL="${1:-$(echo "${HOSTNAME}" | cut -d. -f1 | sed 's/[^a-zA-Z0-9_]//g')}"
 RESULTS_DIR="tests/benchmarks/results_geekbench/${LABEL}"
 GB_DIR="tools/geekbench"
 GB_VERSION="6.4.0"
@@ -72,7 +72,7 @@ collect_machine_info() {
     {
         echo "=== Machine: ${LABEL} ==="
         echo "Date       : $(date '+%Y-%m-%d %H:%M:%S')"
-        echo "Hostname   : $(hostname)"
+        echo "Hostname   : ${HOSTNAME:-$(cat /etc/hostname 2>/dev/null || echo 'unknown')}"
         echo "OS         : $(uname -srm)"
         echo ""
 
@@ -104,24 +104,34 @@ run_geekbench() {
     log_section "Running Geekbench ${GB_VERSION}"
     log_info "This may take 3-5 minutes..."
 
-    local json_out="${RESULTS_DIR}/geekbench_result.json"
     local summary_out="${RESULTS_DIR}/geekbench_summary.txt"
+    local json_out="${RESULTS_DIR}/geekbench_result.json"
 
-    # Run and export JSON
-    "${GB_BIN}" \
-        --no-upload \
-        --export-json "${json_out}" \
-        2>&1 | tee "${summary_out}" \
-        || { log_warn "Geekbench exited with non-zero (may still have results)"; }
+    # Ejecutar sin --no-upload (versión free sube automáticamente)
+    "${GB_BIN}" --cpu 2>&1 | tee "${summary_out}" \
+        || log_warn "Geekbench exited with non-zero"
 
-    if [[ -f "${json_out}" ]]; then
-        log_ok "Results saved: ${json_out}"
+    # Extraer la URL del resultado del output
+    local result_url
+    result_url=$(grep -oP 'https://browser\.geekbench\.com/v6/cpu/\d+' "${summary_out}" | head -1)
+
+    if [[ -n "${result_url}" ]]; then
+        log_info "Result URL: ${result_url}"
+        echo "${result_url}" > "${RESULTS_DIR}/result_url.txt"
+
+        # Descargar JSON (añadir .gb6 a la URL)
+        local json_url="${result_url}.gb6"
+        if command -v wget &>/dev/null; then
+            wget -q -O "${json_out}" "${json_url}" && log_ok "JSON descargado: ${json_out}"
+        elif command -v curl &>/dev/null; then
+            curl -sL -o "${json_out}" "${json_url}" && log_ok "JSON descargado: ${json_out}"
+        fi
     else
-        log_error "JSON output not found. Check ${summary_out} for errors."
-        exit 1
+        log_warn "No se encontró URL en el output. Revisa: ${summary_out}"
     fi
-}
 
+    [[ -f "${json_out}" ]] || { log_error "JSON no generado."; exit 1; }
+}
 
 print_summary() {
     local json="${RESULTS_DIR}/geekbench_result.json"
