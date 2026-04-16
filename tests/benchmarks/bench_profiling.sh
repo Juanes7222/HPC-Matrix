@@ -8,7 +8,10 @@
 #   valgrind    : heap memory (massif) and cache simulation (cachegrind)
 #
 # Usage:
-#   ./bench_profiling.sh
+#   ./bench_profiling.sh [--force|-f]
+#
+# Options:
+#   --force, -f   Overwrite existing raw reports and CSV rows (re-run all tools)
 #
 # Output:
 #   results_profiling/data_profiling.csv   <- parsed metrics (input for Python)
@@ -24,6 +27,16 @@ cd "$(dirname "$0")/../.."
 
 source "tests/benchmarks/bench_utils.sh"
 
+# ---------------------------------------------------------------------------
+# Parse arguments
+# ---------------------------------------------------------------------------
+FORCE=0
+for arg in "$@"; do
+    case "${arg}" in
+        --force|-f) FORCE=1 ;;
+        *) log_warn "Unknown argument: ${arg}" ;;
+    esac
+done
 
 SRC_FILES="src/sequential/mul_seq.c src/matrix_lib.c"
 BIN_DIR="bin"
@@ -33,15 +46,36 @@ CSV_HEADER="matrix_size,time_ms,gflops,cycles,instructions,ipc,cache_refs,cache_
 
 MATRIX_SIZES=(128 256 512 1024)
 
-BIN_PERF="${BIN_DIR}/mul_seq_perf"       
-BIN_GPROF="${BIN_DIR}/mul_seq_gprof"     
+BIN_PERF="${BIN_DIR}/mul_seq_perf"
+BIN_GPROF="${BIN_DIR}/mul_seq_gprof"
 
+# ---------------------------------------------------------------------------
+# should_skip <file>
+#   Returns 0 (skip) if file exists, has content, and FORCE=0.
+#   Returns 1 (run)  if file is missing, empty, or FORCE=1.
+# ---------------------------------------------------------------------------
+should_skip() {
+    local file="$1"
+    if [[ "${FORCE}" -eq 1 ]]; then
+        [[ -f "${file}" ]] && log_info "  [FORCE] Overwriting: ${file}"
+        rm -f "${file}"
+        return 1
+    fi
+    if [[ -s "${file}" ]]; then
+        log_info "  [SKIP] Already exists and non-empty: $(basename "${file}")"
+        return 0
+    fi
+    [[ -f "${file}" ]] && log_warn "  [STALE] Empty file found, re-running: $(basename "${file}")"
+    rm -f "${file}"
+    return 1
+}
 
+# ---------------------------------------------------------------------------
 compile_binaries() {
     log_section "Compiling"
     mkdir -p "${BIN_DIR}"
 
-    if [[ ! -x "${BIN_PERF}" ]]; then
+    if [[ "${FORCE}" -eq 1 ]] || [[ ! -x "${BIN_PERF}" ]]; then
         local cmd="gcc -O2 -g -I./src -o ${BIN_PERF} ${SRC_FILES}"
         log_info "perf/valgrind binary: ${cmd}"
         eval "${cmd}" && log_ok "${BIN_PERF}" || { log_error "Compilation failed"; exit 1; }
@@ -49,7 +83,7 @@ compile_binaries() {
         log_info "Already compiled: ${BIN_PERF}"
     fi
 
-    if [[ ! -x "${BIN_GPROF}" ]]; then
+    if [[ "${FORCE}" -eq 1 ]] || [[ ! -x "${BIN_GPROF}" ]]; then
         local cmd="gcc -O2 -g -pg -I./src -o ${BIN_GPROF} ${SRC_FILES}"
         log_info "gprof binary: ${cmd}"
         eval "${cmd}" && log_ok "${BIN_GPROF}" || { log_error "Compilation failed"; exit 1; }
@@ -70,7 +104,6 @@ parse_peak_mb() {
     /^-+$/ { in_table=1; next }
     in_table && /^[[:space:]]*[0-9]/ {
         gsub(",", "")
-        # columns: index time total useful-heap extra-heap stacks
         if ($4+0 > peak) peak = $4+0
     }
     END { printf "%.3f", peak / 1024 / 1024 }
@@ -79,6 +112,9 @@ parse_peak_mb() {
 
 already_done() {
     local size="$1"
+    if [[ "${FORCE}" -eq 1 ]]; then
+        echo 0; return
+    fi
     awk -F',' -v s="${size}" 'NR>1 && $1==s { found=1 } END { print found+0 }' \
         "${CSV_FILE}" 2>/dev/null
 }
@@ -86,18 +122,23 @@ already_done() {
 run_gprof() {
     local n="$1" raw_dir="$2"
     local out="${raw_dir}/gprof_report.txt"
-    [[ -f "${out}" ]] && return
+    should_skip "${out}" && return
 
     log_info "  gprof N=${n}"
-    "${BIN_GPROF}" "${n}" > /dev/null 2>&1
-    gprof "${BIN_GPROF}" gmon.out > "${out}" 2>&1 || log_warn "gprof failed for N=${n}"
-    rm -f gmon.out
+    "${BIN_GPROF}" "${n}" > /dev/null 2>&1 || true
+    if [[ -f gmon.out ]]; then
+        gprof "${BIN_GPROF}" gmon.out > "${out}" 2>&1 || log_warn "gprof failed for N=${n}"
+        rm -f gmon.out
+    else
+        log_warn "gmon.out not generated for N=${n}"
+        touch "${out}"
+    fi
 }
 
 run_perf() {
     local n="$1" raw_dir="$2"
     local out="${raw_dir}/perf_stat.txt"
-    [[ -f "${out}" ]] && return
+    should_skip "${out}" && return
 
     log_info "  perf stat N=${n}"
     if ! command -v perf &>/dev/null; then
@@ -117,7 +158,7 @@ L1-dcache-load-misses,L1-dcache-loads \
 run_massif() {
     local n="$1" raw_dir="$2"
     local out="${raw_dir}/massif_report.txt"
-    [[ -f "${out}" ]] && return
+    should_skip "${out}" && return
 
     log_info "  valgrind massif N=${n}"
     if ! command -v valgrind &>/dev/null; then
@@ -138,7 +179,7 @@ run_massif() {
 run_cachegrind() {
     local n="$1" raw_dir="$2"
     local out="${raw_dir}/cachegrind_report.txt"
-    [[ -f "${out}" ]] && return
+    should_skip "${out}" && return
 
     log_info "  valgrind cachegrind N=${n}"
     if ! command -v valgrind &>/dev/null; then
@@ -164,7 +205,10 @@ measure_timing() {
         return
     fi
 
-    "${BIN_PERF}" "${n}" 2>/dev/null | head -1
+    local ms
+    ms=$( { time "${BIN_PERF}" "${n}" > /dev/null; } 2>&1 \
+        | grep real | awk '{split($2,a,"m"); printf "%.2f", (a[1]*60 + a[2])*1000}' )
+    echo "${ms:-0}"
 }
 
 compute_gflops() {
@@ -177,9 +221,8 @@ else: print(f'{2 * n**3 / (ms / 1000) / 1e9:.6f}')
 }
 
 write_row() {
-    local csv="$1"
-    shift
-    printf '%s\n' "$*" >> "${csv}"
+    local csv="$1" row="$2"
+    printf '%s\n' "${row}" >> "${csv}"
     sync
 }
 
@@ -188,22 +231,24 @@ profile_size() {
     local raw_dir="${RESULTS_DIR}/raw/N${n}"
 
     if [[ "$(already_done "${n}")" -gt 0 ]]; then
-        log_info "[SKIP] N=${n} already in CSV"
+        log_info "[SKIP] N=${n} already in CSV (use --force to re-run)"
         return
     fi
 
     log_section "Profiling N=${n}"
     mkdir -p "${raw_dir}"
 
-    run_gprof    "${n}" "${raw_dir}"
-    run_perf     "${n}" "${raw_dir}"
-    run_massif   "${n}" "${raw_dir}"
-    run_cachegrind "${n}" "${raw_dir}"
+    run_gprof      "${n}" "${raw_dir}" || log_warn "gprof phase failed for N=${n}"
+    run_perf       "${n}" "${raw_dir}" || log_warn "perf phase failed for N=${n}"
+    run_massif     "${n}" "${raw_dir}" || log_warn "massif phase failed for N=${n}"
+    run_cachegrind "${n}" "${raw_dir}" || log_warn "cachegrind phase failed for N=${n}"
 
     local time_ms
-    time_ms=$(measure_timing "${n}" "${raw_dir}")
+    time_ms=$(measure_timing "${n}" "${raw_dir}") || true
+    [[ -z "${time_ms}" ]] && time_ms="0"
+
     local gflops
-    gflops=$(compute_gflops "${n}" "${time_ms}")
+    gflops=$(compute_gflops "${n}" "${time_ms}") || gflops="0.000000"
 
     local perf_file="${raw_dir}/perf_stat.txt"
     local cycles instructions ipc cache_refs cache_misses cache_miss_pct
@@ -230,12 +275,18 @@ print(f'{m/r*100:.4f}' if r>0 else '0.0000')
 
     local massif_file="${raw_dir}/massif_report.txt"
     local peak_heap_mb
-    peak_heap_mb=$(parse_peak_mb "${massif_file}")
+    peak_heap_mb=$(parse_peak_mb "${massif_file}") || peak_heap_mb="0.000"
+
+    # Elimina fila previa del mismo N si existe (modo --force con CSV ya parcialmente lleno)
+    if [[ "${FORCE}" -eq 1 ]] && [[ -f "${CSV_FILE}" ]]; then
+        local tmp
+        tmp=$(mktemp)
+        awk -F',' -v s="${n}" '$1!=s' "${CSV_FILE}" > "${tmp}"
+        mv "${tmp}" "${CSV_FILE}"
+    fi
 
     write_row "${CSV_FILE}" \
-        "${n},${time_ms},${gflops},${cycles},${instructions},${ipc}," \
-        "${cache_refs},${cache_misses},${cache_miss_pct}," \
-        "${l1_loads},${l1_misses},${l1_miss_pct},${peak_heap_mb}"
+        "${n},${time_ms},${gflops},${cycles},${instructions},${ipc},${cache_refs},${cache_misses},${cache_miss_pct},${l1_loads},${l1_misses},${l1_miss_pct},${peak_heap_mb}"
 
     log_ok "N=${n}: ${time_ms} ms | ${gflops} GFLOPS | ${cache_miss_pct}% cache miss | ${peak_heap_mb} MB"
 }
@@ -254,6 +305,7 @@ print_banner() {
     echo " Sizes      : ${MATRIX_SIZES[*]}"
     echo " Binaries   : ${BIN_PERF} | ${BIN_GPROF}"
     echo " Output     : ${CSV_FILE}"
+    echo " Mode       : $([ "${FORCE}" -eq 1 ] && echo 'FORCE (overwrite)' || echo 'incremental')"
     echo " Date       : $(date '+%Y-%m-%d %H:%M:%S')"
     echo " GCC        : $(gcc --version | head -1)"
     echo "============================================================"
