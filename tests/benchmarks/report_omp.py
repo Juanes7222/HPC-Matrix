@@ -99,14 +99,14 @@ def discover_machines(base: str, explicit: list[str]) -> list[str]:
         return explicit
     found = []
     for entry in sorted(os.listdir(base)):
-        csv_path = os.path.join(base, entry, "results_final", "data_omp.csv")
+        csv_path = os.path.join(base, entry, "results_omp", "data_omp.csv")
         if os.path.isfile(csv_path):
             found.append(entry)
     return found
 
 
 def load_machine_csv(base: str, machine: str) -> pd.DataFrame | None:
-    path = os.path.join(base, machine, "results_final", "data_omp.csv")
+    path = os.path.join(base, machine, "results_omp", "data_omp.csv")
     if not os.path.exists(path):
         print(f"  [--]  {path} not found")
         return None

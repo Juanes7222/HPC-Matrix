@@ -14,8 +14,8 @@
 #                  Controls the output directory and tags all CSV rows.
 #
 # Output:
-#   tests/benchmarks/<machine_flag>/results_final/data_omp.csv
-#   tests/benchmarks/<machine_flag>/results_final/summary_omp.txt
+#   tests/benchmarks/<machine_flag>/results_omp/data_omp.csv
+#   tests/benchmarks/<machine_flag>/results_omp/summary_omp.txt
 #
 # Requires: bench_utils.sh in the same directory.
 # =============================================================================
@@ -44,7 +44,7 @@ MACHINE_FLAG="$1"
 # ---------------------------------------------------------------------------
 
 BIN_DIR="bin"
-RESULTS_DIR="tests/benchmarks/${MACHINE_FLAG}/results_final"
+RESULTS_DIR="tests/benchmarks/${MACHINE_FLAG}/results_omp"
 
 MATRIX_SIZES=(400 800 1600 3200 6400)
 REPETITIONS=10
