@@ -1,0 +1,200 @@
+--------------------------------------------------------------------------------
+-- Metadata
+--------------------------------------------------------------------------------
+Invocation:       /usr/bin/cg_annotate tests/benchmarks/machine1/results_profiling/raw/N1024/cachegrind.out
+Command:          bin/mul_seq_perf 1024
+Events recorded:  Ir
+Events shown:     Ir
+Event sort order: Ir
+Threshold:        0.1%
+Annotation:       on
+
+--------------------------------------------------------------------------------
+-- Summary
+--------------------------------------------------------------------------------
+Ir____________________ 
+
+8,728,617,239 (100.0%)  PROGRAM TOTALS
+
+--------------------------------------------------------------------------------
+-- File:function summary
+--------------------------------------------------------------------------------
+  Ir__________________________  file:function
+
+< 8,614,111,445 (98.7%, 98.7%)  /home/juanes/Documents/GitHub/HPC-Matrix/src/matrix_lib.c:
+  8,599,378,965 (98.5%)           matrixMultiplyRange
+     14,692,398  (0.2%)           fillMatrix
+
+<    56,575,940  (0.6%, 99.3%)  /usr/src/debug/glibc/glibc/stdlib/random_r.c:
+     56,572,174  (0.6%)           random_r
+
+<    39,845,924  (0.5%, 99.8%)  /usr/src/debug/glibc/glibc/stdlib/random.c:
+     39,845,888  (0.5%)           random
+
+<    12,582,912  (0.1%, 99.9%)  /usr/src/debug/glibc/glibc/stdlib/rand.c:rand
+
+--------------------------------------------------------------------------------
+-- Function:file summary
+--------------------------------------------------------------------------------
+  Ir___________________________  function:file
+
+> 8,599,378,965 (98.5%,  98.5%)  matrixMultiplyRange:/home/juanes/Documents/GitHub/HPC-Matrix/src/matrix_lib.c
+
+>    58,669,946  (0.7%,  99.2%)  random_r:
+     56,572,174  (0.6%)            /usr/src/debug/glibc/glibc/stdlib/random_r.c
+
+>    39,845,888  (0.5%,  99.6%)  random:/usr/src/debug/glibc/glibc/stdlib/random.c
+
+>    14,692,398  (0.2%,  99.8%)  fillMatrix:/home/juanes/Documents/GitHub/HPC-Matrix/src/matrix_lib.c
+
+>    12,582,912  (0.1%, 100.0%)  rand:/usr/src/debug/glibc/glibc/stdlib/rand.c
+
+--------------------------------------------------------------------------------
+-- Annotated source file: /home/juanes/Documents/GitHub/HPC-Matrix/src/matrix_lib.c
+--------------------------------------------------------------------------------
+Ir___________________ 
+
+            .          #include "matrix_lib.h"
+            .          
+            .          
+           18  (0.0%)  int** matrixGenerator(int n) {
+            9  (0.0%)      int **matrix = (int**)malloc(n * sizeof(int*));
+           12  (0.0%)      if (!matrix) { perror("malloc rows"); exit(EXIT_FAILURE); }
+            .          
+        9,225  (0.0%)      for (int i = 0; i < n; i++) {
+        9,225  (0.0%)          matrix[i] = (int*)malloc(n * sizeof(int));
+        6,144  (0.0%)          if (!matrix[i]) { perror("malloc cols"); exit(EXIT_FAILURE); }
+            .              }
+            .              return matrix;
+           21  (0.0%)  }
+            .          
+            .          
+           12  (0.0%)  void freeMatrix(int** matrix, int n) {
+       15,378  (0.0%)      for (int i = 0; i < n; i++) free(matrix[i]);
+            6  (0.0%)      free(matrix);
+            9  (0.0%)  }
+            .          
+            .          
+            .          void fillMatrixWithZero(int** matrix, int n) {
+            .              for (int i = 0; i < n; i++)
+            .                  for (int j = 0; j < n; j++)
+            .                      matrix[i][j] = 0;
+            .          }
+            .          
+            .          
+        6,158  (0.0%)  void fillMatrix(int** matrix, int n) {
+            .              /* XOR of time and matrix address produces different seeds
+            .               * even when two matrices are created within the same second. */
+           10  (0.0%)      srand((unsigned int)time(NULL) ^ (unsigned int)(size_t)matrix);
+        6,154  (0.0%)      for (int i = 0; i < n; i++)
+    6,291,456  (0.1%)          for (int j = 0; j < n; j++)
+    8,388,608  (0.1%)              matrix[i][j] = rand();
+           12  (0.0%)  }
+            .          
+            .          
+            .          void matrixMultiply(int** matrix1, int** matrix2, int** result, int n) {
+            3  (0.0%)      matrixMultiplyRange(matrix1, matrix2, result, n, 0, n);
+            .          }
+            .          
+            .          
+            .          void matrixMultiplyWithTransposed(int** matrix1, int** matrix2, int** result, int n) {
+            .              matrixMultiplyRangeWithTransposed(matrix1, matrix2, result, n, 0, n);
+            .          }
+            .          
+            .          
+            .          void matrixMultiplyRange(int** matrix1, int** matrix2, int** result,
+            6  (0.0%)                           int n, int row_start, int row_end) {
+        3,074  (0.0%)      for (int i = row_start; i < row_end; i++)
+    4,194,312  (0.0%)          for (int j = 0; j < n; j++) {
+    5,242,880  (0.1%)              result[i][j] = 0;
+3,221,225,472 (36.9%)              for (int k = 0; k < n; k++)
+5,368,713,216 (61.5%)                  result[i][j] += matrix1[i][k] * matrix2[k][j];
+            .                  }
+            5  (0.0%)  }
+            .          
+            .          
+            .          void matrixMultiplyRangeWithTransposed(int** matrix1, int** matrix2, int** result,
+            .                                   int n, int row_start, int row_end) {
+            .              /* Loop order i-k-j gives better cache performance than i-j-k:
+            .               * the innermost access to matrix2[k][j] is sequential in memory,
+            .               * which reduces cache misses on large matrices.
+            .               * In this algorithm matrix2 is the transpose of the original matrix2. 
+-- line 65 ----------------------------------------
+-- line 71 ----------------------------------------
+            .                      for (int k = 0; k < n; k++)
+            .                          result[i][j] += matrix1[i][k] * matrix2[j][k];
+            .                  }
+            .              }
+            .          }
+            .          
+            .          
+            .          double elapsedMs(struct timespec t_start, struct timespec t_end) {
+            4  (0.0%)      return (t_end.tv_sec  - t_start.tv_sec)  * 1000.0
+            5  (0.0%)           + (t_end.tv_nsec - t_start.tv_nsec) / 1e6;
+            1  (0.0%)  }
+            .          
+            .          
+            .          void printElapsed(double ms) {
+            .              /* Single stdout line captured by the bash benchmark script. */
+            3  (0.0%)      printf("%.3f\n", ms);
+            .          }
+            .          
+            .          
+            .          void printMatrix(int** matrix, int n) {
+            .              if (n > 10) return;
+            .          
+            .              /* Compute the widest number to align all columns evenly. */
+            .              int max_width = 1;
+-- line 94 ----------------------------------------
+-- line 111 ----------------------------------------
+            .          
+            .                  if      (i == 0)     printf(" ┐\n");
+            .                  else if (i == n - 1) printf(" ┘\n");
+            .                  else                 printf(" │\n");
+            .              }
+            .          }
+            .          
+            .          
+            1  (0.0%)  int extractN(int argc, char *argv[]) {
+            2  (0.0%)      if (argc < 2) {
+            .                  fprintf(stderr, "Use: %s <N>\n", argv[0]);
+            .                  exit(EXIT_FAILURE);
+            .              }
+            .              int n = atoi(argv[1]);
+            2  (0.0%)      if (n <= 0) {
+            .                  fprintf(stderr, "Error: N must be Z+.\n");
+            .                  exit(EXIT_FAILURE);
+            .              }
+            .              return n;
+            2  (0.0%)  
+
+--------------------------------------------------------------------------------
+-- Annotated source file: /usr/src/debug/glibc/glibc/stdlib/rand.c
+--------------------------------------------------------------------------------
+Unannotated because one or more of these original files are unreadable:
+- /usr/src/debug/glibc/glibc/stdlib/rand.c
+
+--------------------------------------------------------------------------------
+-- Annotated source file: /usr/src/debug/glibc/glibc/stdlib/random.c
+--------------------------------------------------------------------------------
+Unannotated because one or more of these original files are unreadable:
+- /usr/src/debug/glibc/glibc/stdlib/random.c
+
+--------------------------------------------------------------------------------
+-- Annotated source file: /usr/src/debug/glibc/glibc/stdlib/random_r.c
+--------------------------------------------------------------------------------
+Unannotated because one or more of these original files are unreadable:
+- /usr/src/debug/glibc/glibc/stdlib/random_r.c
+
+--------------------------------------------------------------------------------
+-- Annotation summary
+--------------------------------------------------------------------------------
+Ir___________________ 
+
+8,614,111,445 (98.7%)    annotated: files known & above threshold & readable, line numbers known
+            0            annotated: files known & above threshold & readable, line numbers unknown
+            0          unannotated: files known & above threshold & two or more non-identical
+  109,004,776  (1.2%)  unannotated: files known & above threshold & unreadable 
+    3,397,530  (0.0%)  unannotated: files known & below threshold
+    2,103,488  (0.0%)  unannotated: files unknown
+

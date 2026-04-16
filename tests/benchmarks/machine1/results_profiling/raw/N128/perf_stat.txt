@@ -1,0 +1,22 @@
+# started on Wed Apr 15 22:32:37 2026
+
+
+ Performance counter stats for 'bin/mul_seq_perf 128':
+
+           5690505      cycles                                                                
+          19973772      instructions                                                          
+             26505      cache-misses                                                          
+            472754      cache-references                                                      
+            174255      L1-dcache-load-misses                                                 
+     <not counted>      L1-dcache-loads                                                         (0.00%)
+
+       0.001680402 seconds time elapsed
+
+       0.001533000 seconds user
+       0.000000000 seconds sys
+
+
+Some events weren't counted. Try disabling the NMI watchdog:
+	echo 0 > /proc/sys/kernel/nmi_watchdog
+	perf stat ...
+	echo 1 > /proc/sys/kernel/nmi_watchdog

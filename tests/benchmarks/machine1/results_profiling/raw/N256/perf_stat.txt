@@ -1,0 +1,18 @@
+# started on Wed Apr 15 22:32:49 2026
+
+
+ Performance counter stats for 'bin/mul_seq_perf 256':
+
+          33376046      cycles                                                                  (80.14%)
+         142780117      instructions                                                            (86.08%)
+             38212      cache-misses                                                            (86.07%)
+           2713839      cache-references                                                        (86.08%)
+           1222014      L1-dcache-load-misses                                                   (86.13%)
+          76102421      L1-dcache-loads                                                         (75.51%)
+
+       0.007490343 seconds time elapsed
+
+       0.007384000 seconds user
+       0.000000000 seconds sys
+
+

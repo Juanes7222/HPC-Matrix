@@ -58,3 +58,5 @@ out_dir/
 
 __pycache__/
 *.pyc
+
+tools/
