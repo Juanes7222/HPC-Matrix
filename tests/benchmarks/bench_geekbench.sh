@@ -53,7 +53,7 @@ install_geekbench() {
         exit 1
     fi
 
-    tar -xf "${GB_DIR}/${GB_TARBALL}" -C "${GB_DIR}"
+    tar -xzf "${GB_DIR}/${GB_TARBALL}" -C "${GB_DIR}"
     rm -f "${GB_DIR}/${GB_TARBALL}"
 
     if [[ ! -x "${GB_BIN}" ]]; then
