@@ -107,30 +107,25 @@ run_geekbench() {
     local summary_out="${RESULTS_DIR}/geekbench_summary.txt"
     local json_out="${RESULTS_DIR}/geekbench_result.json"
 
-    # Ejecutar sin --no-upload (versión free sube automáticamente)
-    "${GB_BIN}" --cpu 2>&1 | tee "${summary_out}" \
+    # Exportar JSON local directamente con --export-json
+    "${GB_BIN}" --cpu --export-json "${json_out}" 2>&1 | tee "${summary_out}" \
         || log_warn "Geekbench exited with non-zero"
 
-    # Extraer la URL del resultado del output
+    # Guardar URL del resultado por referencia
     local result_url
     result_url=$(grep -oP 'https://browser\.geekbench\.com/v6/cpu/\d+' "${summary_out}" | head -1)
-
     if [[ -n "${result_url}" ]]; then
         log_info "Result URL: ${result_url}"
         echo "${result_url}" > "${RESULTS_DIR}/result_url.txt"
-
-        # Descargar JSON (añadir .gb6 a la URL)
-        local json_url="${result_url}.gb6"
-        if command -v wget &>/dev/null; then
-            wget -q -O "${json_out}" "${json_url}" && log_ok "JSON descargado: ${json_out}"
-        elif command -v curl &>/dev/null; then
-            curl -sL -o "${json_out}" "${json_url}" && log_ok "JSON descargado: ${json_out}"
-        fi
     else
         log_warn "No se encontró URL en el output. Revisa: ${summary_out}"
     fi
 
-    [[ -f "${json_out}" ]] || { log_error "JSON no generado."; exit 1; }
+    # Validar que el JSON fue generado y no está vacío
+    if [[ ! -s "${json_out}" ]]; then
+        log_error "JSON no generado o vacío. Revisa: ${summary_out}"
+        exit 1
+    fi
 }
 
 print_summary() {
@@ -141,24 +136,23 @@ print_summary() {
     python3 - "${json}" << 'EOF'
 import json, sys
 
-data = json.load(open(sys.argv[1]))
+with open(sys.argv[1]) as f:
+    data = json.load(f)
 
-sc = data.get("score", {})
-single = sc.get("single_core", "N/A")
-multi  = sc.get("multi_core",  "N/A")
+single = data.get("score", "N/A")
+multi  = data.get("multicore_score", "N/A")
 
 print(f"  Single-Core Score : {single}")
 print(f"  Multi-Core  Score : {multi}")
 print("")
 
-sections = data.get("sections", [])
-for section in sections:
+for section in data.get("sections", []):
     name = section.get("name", "")
     print(f"  [{name}]")
     for wb in section.get("workloads", []):
         wname = wb.get("name", "")
-        sc_s  = wb.get("score",       {}).get("single_core", "-")
-        sc_m  = wb.get("score",       {}).get("multi_core",  "-")
+        sc_s  = wb.get("score", "-")
+        sc_m  = wb.get("multicore_score", "-")
         print(f"    {wname:<35} SC: {sc_s:>6}  MC: {sc_m:>6}")
     print("")
 EOF
