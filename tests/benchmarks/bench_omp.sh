@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
-
 set -euo pipefail
 export LC_NUMERIC=C
 
 cd "$(dirname "$0")/../.."
-
 source "tests/benchmarks/bench_utils.sh"
 
 if [[ $# -lt 1 ]]; then
@@ -13,27 +11,37 @@ if [[ $# -lt 1 ]]; then
 fi
 
 MACHINE_FLAG="$1"
-
 BIN_DIR="bin"
 RESULTS_DIR="tests/benchmarks/${MACHINE_FLAG}/results_omp"
-
 MATRIX_SIZES=(400 800 1600 3200 6400)
 REPETITIONS=10
 
 TOTAL_CPUS=$(nproc)
-PHYSICAL_CORES=$(lscpu | awk '/^Core\(s\) per socket:/ { cores=$NF }
-                               /^Socket\(s\):/ { sockets=$NF }
-                               END { print cores * sockets }')
-BENCH_CPUS=$(seq -s',' 0 $(( TOTAL_CPUS - 1 )))
-BENCH_CPU_SINGLE="0"
 
-ALL_THREAD_COUNTS=()
+# lscpu --parse=CORE is more reliable than grepping lscpu text output,
+# which varies by locale and kernel version.
+PHYSICAL_CORES=$(lscpu --parse=CORE 2>/dev/null \
+    | grep -v '^#' | sort -u | wc -l)
+[[ -z "${PHYSICAL_CORES}" || "${PHYSICAL_CORES}" -eq 0 ]] && \
+    PHYSICAL_CORES=$(lscpu 2>/dev/null \
+        | awk '/^Core\(s\) per socket:/{c=$NF} /^Socket\(s\):/{s=$NF} END{print c+0 * s+0}')
+[[ -z "${PHYSICAL_CORES}" || "${PHYSICAL_CORES}" -eq 0 ]] && \
+    PHYSICAL_CORES="${TOTAL_CPUS}"
+
+BENCH_CPUS=$(seq -s',' 0 $(( TOTAL_CPUS - 1 )))
+
+# Build the thread sweep: 1 (serial baseline), powers of 2 up to PHYSICAL_CORES,
+# PHYSICAL_CORES itself, then powers of 2 into the HT range, ending at TOTAL_CPUS.
+ALL_THREAD_COUNTS=(1)
+
 t=2
 while [[ "${t}" -lt "${PHYSICAL_CORES}" ]]; do
     ALL_THREAD_COUNTS+=("${t}")
     t=$(( t * 2 ))
 done
-[[ "${PHYSICAL_CORES}" -gt 2 ]] && ALL_THREAD_COUNTS+=("${PHYSICAL_CORES}")
+
+[[ "${PHYSICAL_CORES}" -ge 2 ]] && ALL_THREAD_COUNTS+=("${PHYSICAL_CORES}")
+
 if [[ "${TOTAL_CPUS}" -gt "${PHYSICAL_CORES}" ]]; then
     t=$(( PHYSICAL_CORES * 2 ))
     while [[ "${t}" -lt "${TOTAL_CPUS}" ]]; do
@@ -43,28 +51,29 @@ if [[ "${TOTAL_CPUS}" -gt "${PHYSICAL_CORES}" ]]; then
     ALL_THREAD_COUNTS+=("${TOTAL_CPUS}")
 fi
 
+# Deduplicate and sort numerically.
+mapfile -t ALL_THREAD_COUNTS < <(printf '%s\n' "${ALL_THREAD_COUNTS[@]}" | sort -un)
+
 BEST_FLAGS="-Wall"
-
 CSV_HEADER="machine,impl,flags,threads,matrix_size,repetition,wall_time_ms"
-
 BIN_OMP="${BIN_DIR}/mul_omp"
 SRC_OMP="src/openmp/mul_openmp.c"
 
 compile_omp() {
-    if [[ -x "${BIN_OMP}" ]]; then
-        log_info "Already compiled: ${BIN_OMP}"
-        return 0
-    fi
-
     if [[ ! -f "${SRC_OMP}" ]]; then
         log_error "Source not found: ${SRC_OMP}"
         return 1
     fi
 
+    # Recompile if the binary is missing or the source is newer.
+    if [[ -x "${BIN_OMP}" && "${BIN_OMP}" -nt "${SRC_OMP}" ]]; then
+        log_info "Already up-to-date: ${BIN_OMP}"
+        return 0
+    fi
+
     local flags_clean
     flags_clean=$(echo "${BEST_FLAGS}" | tr -s ' ' | xargs)
-
-    log_info "Compiling mul_omp via Makefile"
+    log_info "Compiling mul_omp via Makefile (flags: ${flags_clean})"
 
     if make -B bin/mul_omp OPT_FLAGS="${flags_clean}" >/dev/null 2>&1; then
         log_ok "Binary: ${BIN_OMP}"
@@ -117,7 +126,6 @@ run_benchmark() {
 
     for threads in "${ALL_THREAD_COUNTS[@]}"; do
         log_section "Measuring: mul_omp  threads=${threads}  machine=${MACHINE_FLAG}"
-
         for rep in $(seq 1 "${REPETITIONS}"); do
             for size in "${MATRIX_SIZES[@]}"; do
                 if [[ "$(already_done "${csv}" "${MACHINE_FLAG}" \
@@ -131,7 +139,6 @@ run_benchmark() {
                 local ms
                 ms=$(run_single "${BIN_OMP}" "${size}" "${threads}")
                 printf "%s ms\n" "${ms}"
-
                 write_row "${csv}" "${MACHINE_FLAG}" "${threads}" \
                           "${size}" "${rep}" "${ms}"
             done
@@ -158,7 +165,8 @@ print_summary() {
         }
     }' "${csv}" | sort -t'|' -k1,1n -k2,2n > "${tmpfile}"
 
-    local ref_threads="${ALL_THREAD_COUNTS[0]}"
+    # Serial baseline: 1 thread.
+    local ref_threads=1
     declare -A REF_AVG
     while IFS='|' read -r threads size avg; do
         if [[ "${threads}" == "${ref_threads}" ]]; then
@@ -177,7 +185,7 @@ print_summary() {
         echo "GCC          : $(gcc --version | head -1)"
         echo "Sizes        : ${MATRIX_SIZES[*]}"
         echo "Reps         : ${REPETITIONS}"
-        echo "Reference    : ${ref_threads} threads"
+        echo "Reference    : ${ref_threads} thread (serial)"
         echo ""
         echo "Average wall time (ms)"
         echo "======================================================================="
@@ -186,6 +194,7 @@ print_summary() {
             printf "  %9s" "N=${size}"
         done
         printf "  %10s\n" "Avg Speedup"
+
         printf "%-12s" "------------"
         for size in "${MATRIX_SIZES[@]}"; do
             printf "  %9s" "---------"
@@ -200,7 +209,6 @@ print_summary() {
         for threads in "${ALL_THREAD_COUNTS[@]}"; do
             printf "%-12s" "${threads}t"
             local sp_sum=0 sp_cnt=0
-
             for size in "${MATRIX_SIZES[@]}"; do
                 local avg="${ROW[${threads}:${size}]:-}"
                 if [[ -z "${avg}" ]]; then
@@ -208,7 +216,6 @@ print_summary() {
                     continue
                 fi
                 printf "  %9.1f" "${avg}"
-
                 local ref="${REF_AVG[${size}]:-}"
                 if [[ -n "${ref}" && "${avg}" != "0.000" ]]; then
                     local sp
@@ -217,7 +224,6 @@ print_summary() {
                     sp_cnt=$(( sp_cnt + 1 ))
                 fi
             done
-
             if (( sp_cnt > 0 )); then
                 local avg_sp
                 avg_sp=$(echo "scale=3; ${sp_sum} / ${sp_cnt}" | bc)
@@ -228,8 +234,7 @@ print_summary() {
         done
 
         echo ""
-        echo "Speedup = T(${ref_threads}t) / T(row)  (>1 means row is faster than ${ref_threads} threads)"
-
+        echo "Speedup = T(1t) / T(row)  (>1 means faster than serial)"
     } | tee "${summary}"
 
     rm -f "${tmpfile}"
@@ -255,14 +260,13 @@ print_banner() {
 
 main() {
     mkdir -p "${RESULTS_DIR}" "${BIN_DIR}"
-
     sudo -v
+
     ( while true; do sudo -nv; sleep 60; done ) &
     SUDO_KEEPER_PID=$!
-
     trap 'kill "${SUDO_KEEPER_PID}" 2>/dev/null; restore_system' EXIT
-    optimize_system
 
+    optimize_system
     print_banner
     compile_omp
     run_benchmark
