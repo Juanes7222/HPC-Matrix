@@ -32,7 +32,7 @@ BENCH_CPUS=$(seq -s',' 0 $(( TOTAL_CPUS - 1 )))
 
 # Build the thread sweep: 1 (serial baseline), powers of 2 up to PHYSICAL_CORES,
 # PHYSICAL_CORES itself, then powers of 2 into the HT range, ending at TOTAL_CPUS.
-ALL_THREAD_COUNTS=(1)
+ALL_THREAD_COUNTS=()
 
 t=2
 while [[ "${t}" -lt "${PHYSICAL_CORES}" ]]; do
