@@ -1,36 +1,11 @@
 #!/usr/bin/env bash
-# =============================================================================
-# bench_omp.sh  --  OpenMP matrix multiplication benchmark
-#
-# Measures the performance of the OpenMP implementation across multiple matrix
-# sizes and thread counts. Thread counts are derived automatically from the
-# number of logical CPUs available on the current machine.
-#
-# Usage:
-#   ./bench_omp.sh <machine_flag>
-#
-# Arguments:
-#   machine_flag : label for the current machine (e.g. machine1, machine2).
-#                  Controls the output directory and tags all CSV rows.
-#
-# Output:
-#   tests/benchmarks/<machine_flag>/results_omp/data_omp.csv
-#   tests/benchmarks/<machine_flag>/results_omp/summary_omp.txt
-#
-# Requires: bench_utils.sh in the same directory.
-# =============================================================================
 
 set -euo pipefail
 export LC_NUMERIC=C
 
 cd "$(dirname "$0")/../.."
 
-# shellcheck source=tests/benchmarks/bench_utils.sh
 source "tests/benchmarks/bench_utils.sh"
-
-# ---------------------------------------------------------------------------
-# ARGUMENT PARSING
-# ---------------------------------------------------------------------------
 
 if [[ $# -lt 1 ]]; then
     echo "Usage: $0 <machine_flag>" >&2
@@ -39,42 +14,41 @@ fi
 
 MACHINE_FLAG="$1"
 
-# ---------------------------------------------------------------------------
-# CONFIGURATION
-# ---------------------------------------------------------------------------
-
 BIN_DIR="bin"
 RESULTS_DIR="tests/benchmarks/${MACHINE_FLAG}/results_omp"
 
 MATRIX_SIZES=(400 800 1600 3200 6400)
 REPETITIONS=10
 
-# Derive CPU count dynamically from the current machine
 TOTAL_CPUS=$(nproc)
+PHYSICAL_CORES=$(lscpu | awk '/^Core\(s\) per socket:/ { cores=$NF }
+                               /^Socket\(s\):/ { sockets=$NF }
+                               END { print cores * sockets }')
 BENCH_CPUS=$(seq -s',' 0 $(( TOTAL_CPUS - 1 )))
 BENCH_CPU_SINGLE="0"
 
-# Build thread counts: powers of 2 up to TOTAL_CPUS, plus TOTAL_CPUS itself
 ALL_THREAD_COUNTS=()
 t=2
-while [[ "${t}" -lt "${TOTAL_CPUS}" ]]; do
+while [[ "${t}" -lt "${PHYSICAL_CORES}" ]]; do
     ALL_THREAD_COUNTS+=("${t}")
     t=$(( t * 2 ))
 done
-ALL_THREAD_COUNTS+=("${TOTAL_CPUS}")
+[[ "${PHYSICAL_CORES}" -gt 2 ]] && ALL_THREAD_COUNTS+=("${PHYSICAL_CORES}")
+if [[ "${TOTAL_CPUS}" -gt "${PHYSICAL_CORES}" ]]; then
+    t=$(( PHYSICAL_CORES * 2 ))
+    while [[ "${t}" -lt "${TOTAL_CPUS}" ]]; do
+        ALL_THREAD_COUNTS+=("${t}")
+        t=$(( t * 2 ))
+    done
+    ALL_THREAD_COUNTS+=("${TOTAL_CPUS}")
+fi
 
-# NO COMPILER FLAGS FOR COMPILER OPTIMIZATION (we want to test the effect of threads, not flags)
 BEST_FLAGS="-Wall"
 
-# CSV columns: machine,impl,flags,threads,matrix_size,repetition,wall_time_ms
 CSV_HEADER="machine,impl,flags,threads,matrix_size,repetition,wall_time_ms"
 
 BIN_OMP="${BIN_DIR}/mul_omp"
 SRC_OMP="src/openmp/mul_openmp.c"
-
-# ---------------------------------------------------------------------------
-# COMPILATION
-# ---------------------------------------------------------------------------
 
 compile_omp() {
     if [[ -x "${BIN_OMP}" ]]; then
@@ -100,10 +74,6 @@ compile_omp() {
     fi
 }
 
-# ---------------------------------------------------------------------------
-# HELPERS
-# ---------------------------------------------------------------------------
-
 already_done() {
     local csv="$1" machine="$2" threads="$3" size="$4" rep="$5"
     awk -F',' \
@@ -118,8 +88,13 @@ run_single() {
     local bin="$1" size="$2" threads="$3"
     local exit_code=0 ms
 
-    ms=$(sudo chrt -f 99 taskset -c "${BENCH_CPUS}" \
-        "${bin}" "${size}" "${threads}" 2>/dev/null) || exit_code=$?
+    if [[ "${threads}" -gt 1 ]]; then
+        ms=$(sudo chrt -f 99 taskset -c "${BENCH_CPUS}" \
+            "${bin}" "${size}" "${threads}" 2>/dev/null) || exit_code=$?
+    else
+        ms=$(taskset -c "${BENCH_CPUS}" \
+            "${bin}" "${size}" "${threads}" 2>/dev/null) || exit_code=$?
+    fi
 
     if [[ -z "${ms}" || "${exit_code}" -ne 0 ]]; then
         echo "0.000"
@@ -135,10 +110,6 @@ write_row() {
         "${size}" "${rep}" "${ms}" >> "${csv}"
     sync
 }
-
-# ---------------------------------------------------------------------------
-# BENCHMARK LOOP
-# ---------------------------------------------------------------------------
 
 run_benchmark() {
     local csv="${RESULTS_DIR}/data_omp.csv"
@@ -168,16 +139,11 @@ run_benchmark() {
     done
 }
 
-# ---------------------------------------------------------------------------
-# SUMMARY
-# ---------------------------------------------------------------------------
-
 print_summary() {
     local csv="${RESULTS_DIR}/data_omp.csv"
     local summary="${RESULTS_DIR}/summary_omp.txt"
     local tmpfile="${RESULTS_DIR}/.avgs_omp.tmp"
 
-    # Compute averages per (threads, size)
     awk -F',' '
     NR==1 { next }
     {
@@ -192,7 +158,6 @@ print_summary() {
         }
     }' "${csv}" | sort -t'|' -k1,1n -k2,2n > "${tmpfile}"
 
-    # Reference: lowest thread count
     local ref_threads="${ALL_THREAD_COUNTS[0]}"
     declare -A REF_AVG
     while IFS='|' read -r threads size avg; do
@@ -203,15 +168,16 @@ print_summary() {
 
     {
         echo ""
-        echo "Machine   : ${MACHINE_FLAG}"
-        echo "Date      : $(date '+%Y-%m-%d %H:%M:%S')"
-        echo "Host      : $(hostname)"
-        echo "CPUs      : ${TOTAL_CPUS}  (taskset: ${BENCH_CPUS})"
-        echo "Threads   : ${ALL_THREAD_COUNTS[*]}"
-        echo "GCC       : $(gcc --version | head -1)"
-        echo "Sizes     : ${MATRIX_SIZES[*]}"
-        echo "Reps      : ${REPETITIONS}"
-        echo "Reference : ${ref_threads} threads"
+        echo "Machine      : ${MACHINE_FLAG}"
+        echo "Date         : $(date '+%Y-%m-%d %H:%M:%S')"
+        echo "Host         : $(hostname)"
+        echo "Physical CPUs: ${PHYSICAL_CORES}"
+        echo "Logical CPUs : ${TOTAL_CPUS}  (taskset: ${BENCH_CPUS})"
+        echo "Threads      : ${ALL_THREAD_COUNTS[*]}"
+        echo "GCC          : $(gcc --version | head -1)"
+        echo "Sizes        : ${MATRIX_SIZES[*]}"
+        echo "Reps         : ${REPETITIONS}"
+        echo "Reference    : ${ref_threads} threads"
         echo ""
         echo "Average wall time (ms)"
         echo "======================================================================="
@@ -271,29 +237,30 @@ print_summary() {
     log_ok "Raw data: ${csv}"
 }
 
-# ---------------------------------------------------------------------------
-# BANNER
-# ---------------------------------------------------------------------------
-
 print_banner() {
     echo -e "${BOLD}"
     echo "============================================================"
     echo "   OpenMP Matrix Multiplication Benchmark"
-    echo "   Machine     : ${MACHINE_FLAG}"
-    echo "   CPUs        : ${TOTAL_CPUS}  (taskset: ${BENCH_CPUS})"
-    echo "   Threads     : ${ALL_THREAD_COUNTS[*]}"
-    echo "   Sizes       : ${MATRIX_SIZES[*]}"
-    echo "   Repetitions : ${REPETITIONS}"
-    echo "   Flags       : ${BEST_FLAGS}"
-    echo "   Date        : $(date '+%Y-%m-%d %H:%M:%S')"
+    echo "   Machine      : ${MACHINE_FLAG}"
+    echo "   Physical CPUs: ${PHYSICAL_CORES}"
+    echo "   Logical CPUs : ${TOTAL_CPUS}  (taskset: ${BENCH_CPUS})"
+    echo "   Threads      : ${ALL_THREAD_COUNTS[*]}"
+    echo "   Sizes        : ${MATRIX_SIZES[*]}"
+    echo "   Repetitions  : ${REPETITIONS}"
+    echo "   Flags        : ${BEST_FLAGS}"
+    echo "   Date         : $(date '+%Y-%m-%d %H:%M:%S')"
     echo "============================================================"
     echo -e "${RESET}"
 }
 
-
 main() {
     mkdir -p "${RESULTS_DIR}" "${BIN_DIR}"
-    trap restore_system EXIT
+
+    sudo -v
+    ( while true; do sudo -nv; sleep 60; done ) &
+    SUDO_KEEPER_PID=$!
+
+    trap 'kill "${SUDO_KEEPER_PID}" 2>/dev/null; restore_system' EXIT
     optimize_system
 
     print_banner
