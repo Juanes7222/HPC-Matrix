@@ -1,0 +1,28 @@
+=== Machine: machine2 ===
+Date       : 2026-04-18 09:41:57
+Hostname   : debian
+OS         : Linux 6.12.73+deb12-amd64 x86_64
+
+--- CPU ---
+11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz
+Logical cores : 16
+Physical cores: 16
+Architecture:                            x86_64
+CPU max MHz:                             4600.0000
+L1d cache:                               384 KiB (8 instances)
+L1i cache:                               256 KiB (8 instances)
+L2 cache:                                10 MiB (8 instances)
+L3 cache:                                24 MiB (1 instance)
+NUMA node(s):                            1
+NUMA node0 CPU(s):                       0-15
+
+--- Memory ---
+               total        used        free      shared  buff/cache   available
+Mem:            15Gi       6.4Gi       5.2Gi       927Mi       4.9Gi       8.8Gi
+Swap:           23Gi          0B        23Gi
+
+--- GCC ---
+gcc (Debian 12.2.0-14+deb12u1) 12.2.0
+
+--- Kernel ---
+Linux debian 6.12.73+deb12-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.12.73-1~bpo12+1 (2026-02-21) x86_64 GNU/Linux

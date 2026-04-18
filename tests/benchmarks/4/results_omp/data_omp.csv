@@ -1,0 +1,10 @@
+machine,impl,flags,threads,matrix_size,repetition,wall_time_ms
+4,mul_omp,"-Wall",6,400,1,86.325
+4,mul_omp,"-Wall",6,800,1,734.348
+4,mul_omp,"-Wall",6,1600,1,8083.557
+4,mul_omp,"-Wall",6,3200,1,80530.137
+4,mul_omp,"-Wall",6,6400,1,797154.023
+4,mul_omp,"-Wall",6,400,2,86.348
+4,mul_omp,"-Wall",6,800,2,736.834
+4,mul_omp,"-Wall",6,1600,2,8277.920
+4,mul_omp,"-Wall",6,3200,2,79377.693
