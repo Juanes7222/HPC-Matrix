@@ -5,12 +5,24 @@ export LC_NUMERIC=C
 cd "$(dirname "$0")/../.."
 source "tests/benchmarks/bench_utils.sh"
 
+# ---------------------------------------------------------------------------
+# Usage: bench_omp.sh <machine_flag> [thread_count...]
+#
+# Examples:
+#   ./bench_omp.sh machine1          # full sweep over all thread counts
+#   ./bench_omp.sh machine1 6        # only 6 threads
+#   ./bench_omp.sh machine1 2 4 6    # only the listed thread counts
+# ---------------------------------------------------------------------------
+
 if [[ $# -lt 1 ]]; then
-    echo "Usage: $0 <machine_flag>" >&2
+    echo "Usage: $0 <machine_flag> [thread_count...]" >&2
     exit 1
 fi
 
 MACHINE_FLAG="$1"
+shift
+EXPLICIT_THREADS=("$@")
+
 BIN_DIR="bin"
 RESULTS_DIR="tests/benchmarks/${MACHINE_FLAG}/results_omp"
 MATRIX_SIZES=(400 800 1600 3200 6400)
@@ -18,8 +30,6 @@ REPETITIONS=10
 
 TOTAL_CPUS=$(nproc)
 
-# lscpu --parse=CORE is more reliable than grepping lscpu text output,
-# which varies by locale and kernel version.
 PHYSICAL_CORES=$(lscpu --parse=CORE 2>/dev/null \
     | grep -v '^#' | sort -u | wc -l)
 [[ -z "${PHYSICAL_CORES}" || "${PHYSICAL_CORES}" -eq 0 ]] && \
@@ -30,29 +40,38 @@ PHYSICAL_CORES=$(lscpu --parse=CORE 2>/dev/null \
 
 BENCH_CPUS=$(seq -s',' 0 $(( TOTAL_CPUS - 1 )))
 
-# Build the thread sweep: 1 (serial baseline), powers of 2 up to PHYSICAL_CORES,
-# PHYSICAL_CORES itself, then powers of 2 into the HT range, ending at TOTAL_CPUS.
-ALL_THREAD_COUNTS=()
+# Build the default thread sweep when no explicit list is provided:
+# powers of 2 up to PHYSICAL_CORES, then PHYSICAL_CORES, then powers of 2
+# into the HT range, ending at TOTAL_CPUS. Serial baseline (1 thread) is
+# always prepended so speedup calculations have a reference point.
+build_thread_sweep() {
+    local counts=()
 
-t=2
-while [[ "${t}" -lt "${PHYSICAL_CORES}" ]]; do
-    ALL_THREAD_COUNTS+=("${t}")
-    t=$(( t * 2 ))
-done
-
-[[ "${PHYSICAL_CORES}" -ge 2 ]] && ALL_THREAD_COUNTS+=("${PHYSICAL_CORES}")
-
-if [[ "${TOTAL_CPUS}" -gt "${PHYSICAL_CORES}" ]]; then
-    t=$(( PHYSICAL_CORES * 2 ))
-    while [[ "${t}" -lt "${TOTAL_CPUS}" ]]; do
-        ALL_THREAD_COUNTS+=("${t}")
+    local t=2
+    while [[ "${t}" -lt "${PHYSICAL_CORES}" ]]; do
+        counts+=("${t}")
         t=$(( t * 2 ))
     done
-    ALL_THREAD_COUNTS+=("${TOTAL_CPUS}")
-fi
 
-# Deduplicate and sort numerically.
-mapfile -t ALL_THREAD_COUNTS < <(printf '%s\n' "${ALL_THREAD_COUNTS[@]}" | sort -un)
+    [[ "${PHYSICAL_CORES}" -ge 2 ]] && counts+=("${PHYSICAL_CORES}")
+
+    if [[ "${TOTAL_CPUS}" -gt "${PHYSICAL_CORES}" ]]; then
+        t=$(( PHYSICAL_CORES * 2 ))
+        while [[ "${t}" -lt "${TOTAL_CPUS}" ]]; do
+            counts+=("${t}")
+            t=$(( t * 2 ))
+        done
+        counts+=("${TOTAL_CPUS}")
+    fi
+
+    mapfile -t ALL_THREAD_COUNTS < <(printf '%s\n' "${counts[@]}" | sort -un)
+}
+
+if [[ "${#EXPLICIT_THREADS[@]}" -gt 0 ]]; then
+    mapfile -t ALL_THREAD_COUNTS < <(printf '%s\n' "${EXPLICIT_THREADS[@]}" | sort -un)
+else
+    build_thread_sweep
+fi
 
 BEST_FLAGS="-Wall"
 CSV_HEADER="machine,impl,flags,threads,matrix_size,repetition,wall_time_ms"
@@ -65,7 +84,6 @@ compile_omp() {
         return 1
     fi
 
-    # Recompile if the binary is missing or the source is newer.
     if [[ -x "${BIN_OMP}" && "${BIN_OMP}" -nt "${SRC_OMP}" ]]; then
         log_info "Already up-to-date: ${BIN_OMP}"
         return 0
@@ -93,17 +111,16 @@ already_done() {
         "${csv}" 2>/dev/null
 }
 
+# chrt is applied unconditionally so that every measurement, including the
+# 1-thread serial baseline, runs under the same scheduling policy. Without
+# this, speedup figures are skewed because the reference time is measured
+# under different OS scheduling conditions than the parallel runs.
 run_single() {
     local bin="$1" size="$2" threads="$3"
     local exit_code=0 ms
 
-    if [[ "${threads}" -gt 1 ]]; then
-        ms=$(sudo chrt -f 99 taskset -c "${BENCH_CPUS}" \
-            "${bin}" "${size}" "${threads}" 2>/dev/null) || exit_code=$?
-    else
-        ms=$(taskset -c "${BENCH_CPUS}" \
-            "${bin}" "${size}" "${threads}" 2>/dev/null) || exit_code=$?
-    fi
+    ms=$(sudo chrt -f 99 taskset -c "${BENCH_CPUS}" \
+        "${bin}" "${size}" "${threads}" 2>/dev/null) || exit_code=$?
 
     if [[ -z "${ms}" || "${exit_code}" -ne 0 ]]; then
         echo "0.000"
@@ -165,7 +182,6 @@ print_summary() {
         }
     }' "${csv}" | sort -t'|' -k1,1n -k2,2n > "${tmpfile}"
 
-    # Serial baseline: 1 thread.
     local ref_threads=1
     declare -A REF_AVG
     while IFS='|' read -r threads size avg; do
@@ -235,6 +251,18 @@ print_summary() {
 
         echo ""
         echo "Speedup = T(1t) / T(row)  (>1 means faster than serial)"
+
+        # Warn if the 1-thread baseline is absent from the measured set so
+        # the user knows speedup figures are not available.
+        local has_baseline=0
+        for t in "${ALL_THREAD_COUNTS[@]}"; do
+            [[ "${t}" -eq 1 ]] && has_baseline=1 && break
+        done
+        if [[ "${has_baseline}" -eq 0 ]]; then
+            echo ""
+            echo "NOTE: 1-thread baseline not in this run. Speedup requires a prior"
+            echo "      full sweep or an explicit run with thread_count=1."
+        fi
     } | tee "${summary}"
 
     rm -f "${tmpfile}"
