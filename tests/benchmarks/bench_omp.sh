@@ -19,9 +19,17 @@ if [[ $# -lt 1 ]]; then
     exit 1
 fi
 
+ORIGINAL_ARGS=("$@")   # save before any shift
+
+if [[ $# -lt 1 ]]; then
+    echo "Usage: $0 <machine_flag> [thread_count...]" >&2
+    exit 1
+fi
+
 MACHINE_FLAG="$1"
 shift
 EXPLICIT_THREADS=("$@")
+
 
 BIN_DIR="bin"
 RESULTS_DIR="tests/benchmarks/${MACHINE_FLAG}/results_omp"
@@ -308,7 +316,7 @@ if [[ -z "${INHIBITED:-}" ]]; then
         --who="bench_omp" \
         --why="OpenMP benchmark running" \
         --mode=block \
-        bash "$0" "$@"
+        bash "$0" "${ORIGINAL_ARGS[@]}"
 fi
 
 main
