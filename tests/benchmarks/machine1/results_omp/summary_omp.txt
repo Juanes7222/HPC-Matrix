@@ -1,0 +1,22 @@
+
+Machine      : machine1
+Date         : 2026-04-18 20:38:25
+Host         : 
+Physical CPUs: 6
+Logical CPUs : 12  (taskset: 0,1,2,3,4,5,6,7,8,9,10,11)
+Threads      : 8
+GCC          : gcc (GCC) 15.2.1 20260209
+Sizes        : 400 800 1600 3200 6400
+Reps         : 10
+Reference    : 1 thread (serial)
+
+Average wall time (ms)
+=======================================================================
+Threads           N=400      N=800     N=1600     N=3200     N=6400  Avg Speedup
+------------  ---------  ---------  ---------  ---------  ---------  ----------
+8t                 24.0      202.5     1874.1    19431.7   169600.1         N/A
+
+Speedup = T(1t) / T(row)  (>1 means faster than serial)
+
+NOTE: 1-thread baseline not in this run. Speedup requires a prior
+      full sweep or an explicit run with thread_count=1.
