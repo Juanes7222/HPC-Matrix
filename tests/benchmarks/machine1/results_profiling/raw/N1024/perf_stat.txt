@@ -1,18 +1,20 @@
-# started on Wed Apr 15 22:32:52 2026
+# started on Sat Apr 18 20:50:38 2026
 
 
- Performance counter stats for 'bin/mul_seq_perf 1024':
+ Performance counter stats for 'bin/mul_seq_perf 1024' (5 runs):
 
-        3337562017      cycles                                                                  (83.25%)
-        8748438142      instructions                                                            (83.26%)
-          35622179      cache-misses                                                            (83.38%)
-        1922358885      cache-references                                                        (83.39%)
-        1289379652      L1-dcache-load-misses                                                   (83.41%)
-        4351145006      L1-dcache-loads                                                         (83.31%)
+        3336495780      cycles:u                                                                ( +-  0.28% )  (49.65%)
+        8733111998      instructions:u                                                          ( +-  0.09% )  (49.83%)
+        1919460831      cache-references:u                                                      ( +-  0.07% )  (49.96%)
+          34781758      cache-misses:u                                                          ( +-  0.07% )  (50.11%)
+        4322379095      L1-dcache-loads:u                                                       ( +-  0.10% )  (50.25%)
+        1285396505      L1-dcache-load-misses:u                                                 ( +-  0.07% )  (50.35%)
+   <not supported>      LLC-loads:u                                                           
+   <not supported>      LLC-load-misses:u                                                     
+        1083339019      dTLB-loads:u                                                            ( +-  0.09% )  (50.17%)
+             20151      dTLB-load-misses:u                                                      ( +-  8.70% )  (50.04%)
+        1113011292      branch-instructions:u                                                   ( +-  0.12% )  (49.89%)
+           1063750      branch-misses:u                                                         ( +-  0.07% )  (49.75%)
 
-       0.718006542 seconds time elapsed
-
-       0.707454000 seconds user
-       0.004963000 seconds sys
-
+       0.725120326 +- 0.002993570 seconds time elapsed  ( +-  0.41% )
 

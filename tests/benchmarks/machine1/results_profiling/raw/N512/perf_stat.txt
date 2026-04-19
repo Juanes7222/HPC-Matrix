@@ -1,18 +1,20 @@
-# started on Wed Apr 15 22:32:50 2026
+# started on Sat Apr 18 20:50:27 2026
 
 
- Performance counter stats for 'bin/mul_seq_perf 512':
+ Performance counter stats for 'bin/mul_seq_perf 512' (5 runs):
 
-         389108296      cycles                                                                  (83.28%)
-        1110262490      instructions                                                            (83.24%)
-            175903      cache-misses                                                            (83.25%)
-         249729045      cache-references                                                        (83.26%)
-         108688711      L1-dcache-load-misses                                                   (83.32%)
-         552510571      L1-dcache-loads                                                         (83.65%)
+         383002900      cycles:u                                                                ( +-  0.23% )  (48.56%)
+        1096690245      instructions:u                                                          ( +-  0.12% )  (49.79%)
+         247109558      cache-references:u                                                      ( +-  0.24% )  (50.99%)
+            100710      cache-misses:u                                                          ( +-  5.85% )  (52.16%)
+         538283825      L1-dcache-loads:u                                                       ( +-  0.08% )  (52.40%)
+         106466937      L1-dcache-load-misses:u                                                 ( +-  0.21% )  (51.44%)
+   <not supported>      LLC-loads:u                                                           
+   <not supported>      LLC-load-misses:u                                                     
+          67828959      dTLB-loads:u                                                            ( +-  0.21% )  (50.21%)
+              2384      dTLB-load-misses:u                                                      ( +- 16.19% )  (49.01%)
+         140655712      branch-instructions:u                                                   ( +-  0.19% )  (47.84%)
+            274597      branch-misses:u                                                         ( +-  0.08% )  (47.60%)
 
-       0.084084219 seconds time elapsed
-
-       0.081449000 seconds user
-       0.001990000 seconds sys
-
+       0.084382999 +- 0.000143215 seconds time elapsed  ( +-  0.17% )
 

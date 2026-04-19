@@ -3,14 +3,14 @@ Flat profile:
 Each sample counts as 0.01 seconds.
   %   cumulative   self              self     total           
  time   seconds   seconds    calls  ms/call  ms/call  name    
-100.00      0.69     0.69        1   690.00   690.00  matrixMultiplyRange
-  0.00      0.69     0.00        3     0.00     0.00  freeMatrix
-  0.00      0.69     0.00        3     0.00     0.00  matrixGenerator
-  0.00      0.69     0.00        2     0.00     0.00  fillMatrix
-  0.00      0.69     0.00        1     0.00     0.00  elapsedMs
-  0.00      0.69     0.00        1     0.00     0.00  extractN
-  0.00      0.69     0.00        1     0.00     0.00  matrixMultiply
-  0.00      0.69     0.00        1     0.00     0.00  printElapsed
+100.00      0.71     0.71        1   710.00   710.00  matrixMultiplyRange
+  0.00      0.71     0.00        3     0.00     0.00  freeMatrix
+  0.00      0.71     0.00        3     0.00     0.00  matrixGenerator
+  0.00      0.71     0.00        2     0.00     0.00  fillMatrix
+  0.00      0.71     0.00        1     0.00     0.00  elapsedMs
+  0.00      0.71     0.00        1     0.00     0.00  extractN
+  0.00      0.71     0.00        1     0.00     0.00  matrixMultiply
+  0.00      0.71     0.00        1     0.00     0.00  printElapsed
 
  %         the percentage of the total running time of the
 time       program used by this function.
@@ -48,15 +48,15 @@ notice and this notice are preserved.
 		     Call graph (explanation follows)
 
 
-granularity: each sample hit covers 4 byte(s) for 1.45% of 0.69 seconds
+granularity: each sample hit covers 4 byte(s) for 1.41% of 0.71 seconds
 
 index % time    self  children    called     name
-                0.69    0.00       1/1           main [2]
-[1]    100.0    0.69    0.00       1         matrixMultiplyRange [1]
+                0.71    0.00       1/1           main [2]
+[1]    100.0    0.71    0.00       1         matrixMultiplyRange [1]
 -----------------------------------------------
                                                  <spontaneous>
-[2]    100.0    0.00    0.69                 main [2]
-                0.69    0.00       1/1           matrixMultiplyRange [1]
+[2]    100.0    0.00    0.71                 main [2]
+                0.71    0.00       1/1           matrixMultiplyRange [1]
                 0.00    0.00       3/3           matrixGenerator [4]
                 0.00    0.00       3/3           freeMatrix [3]
                 0.00    0.00       2/2           fillMatrix [5]

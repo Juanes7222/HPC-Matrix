@@ -1,0 +1,34 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 92  of event 'cpu/cycles/Pu'
+# Event count (approx.): 373359838
+#
+# Overhead  Command       Shared Object         Symbol                 
+# ........  ............  ....................  .......................
+#
+    98.12%  mul_seq_perf  mul_seq_perf          [.] matrixMultiplyRange
+            |
+            ---matrixMultiplyRange
+               0x555555760850
+               0xd3739044def2725a
+
+     1.69%  mul_seq_perf  libc.so.6             [.] random_r
+            |
+            ---__random_r (inlined)
+               rand
+               fillMatrix
+               0x7ffff9d17ba0c0c
+
+     0.18%  mul_seq_perf  libc.so.6             [.] random
+     0.01%  mul_seq_perf  ld-linux-x86-64.so.2  [.] 0x0000000000016a14
+     0.00%  mul_seq_perf  [unknown]             [k] 0xffffffffbba01280
+     0.00%  mul_seq_perf  [unknown]             [k] 0xffffffffbba01630
+     0.00%  mul_seq_perf  ld-linux-x86-64.so.2  [.] 0x000000000001f7ab
+
+
+#
+# (Tip: Show individual samples with: perf script)
+#

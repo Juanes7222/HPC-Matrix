@@ -14,7 +14,7 @@ Annotation:       on
 --------------------------------------------------------------------------------
 Ir____________________ 
 
-1,108,766,432 (100.0%)  PROGRAM TOTALS
+1,108,766,636 (100.0%)  PROGRAM TOTALS
 
 --------------------------------------------------------------------------------
 -- File:function summary
@@ -195,6 +195,6 @@ Ir___________________
             0            annotated: files known & above threshold & readable, line numbers unknown
             0          unannotated: files known & above threshold & two or more non-identical
    27,266,586  (2.5%)  unannotated: files known & above threshold & unreadable 
-    1,171,249  (0.1%)  unannotated: files known & below threshold
+    1,171,453  (0.1%)  unannotated: files known & below threshold
       527,552  (0.0%)  unannotated: files unknown
 

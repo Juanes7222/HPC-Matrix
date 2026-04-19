@@ -1,20 +1,22 @@
-# started on Wed Apr 15 22:32:37 2026
+# started on Sat Apr 18 20:50:24 2026
 
 
- Performance counter stats for 'bin/mul_seq_perf 128':
+ Performance counter stats for 'bin/mul_seq_perf 128' (5 runs):
 
-           5690505      cycles                                                                
-          19973772      instructions                                                          
-             26505      cache-misses                                                          
-            472754      cache-references                                                      
-            174255      L1-dcache-load-misses                                                 
-     <not counted>      L1-dcache-loads                                                         (0.00%)
+           3409897      cycles:u                                                                ( +- 16.94% )  (74.11%)
+          19211590      instructions:u                                                          ( +-  0.00% )
+            356404      cache-references:u                                                      ( +-  9.31% )
+              5146      cache-misses:u                                                          ( +-  6.64% )
+           9235358      L1-dcache-loads:u                                                       ( +-  0.02% )
+            203356      L1-dcache-load-misses:u                                                 ( +-  2.56% )  (25.89%)
+   <not supported>      LLC-loads:u                                                           
+   <not supported>      LLC-load-misses:u                                                     
+     <not counted>      dTLB-loads:u                                                            (0.00%)
+     <not counted>      dTLB-load-misses:u                                                      (0.00%)
+     <not counted>      branch-instructions:u                                                   (0.00%)
+     <not counted>      branch-misses:u                                                         (0.00%)
 
-       0.001680402 seconds time elapsed
-
-       0.001533000 seconds user
-       0.000000000 seconds sys
-
+       0.001436657 +- 0.000009807 seconds time elapsed  ( +-  0.68% )
 
 Some events weren't counted. Try disabling the NMI watchdog:
 	echo 0 > /proc/sys/kernel/nmi_watchdog

@@ -1,18 +1,18 @@
 === Machine: machine1 ===
-Date       : 2026-04-16 16:39:32
+Date       : 2026-04-18 20:40:08
 Hostname   : archlinux
 OS         : Linux 6.19.8-arch1-1 x86_64
 
 --- CPU ---
 AMD Ryzen 5 7600X 6-Core Processor
-Logical cores : 6
-Physical cores: 6
+Logical cores : 12
+Physical cores: 12
 CPU MHz máx.:                             5457.1050
 CPU MHz mín.:                             427.3640
 
 --- Memory ---
                total       usado       libre  compartido   búf/caché  disponible
-Mem:            30Gi       2.5Gi        25Gi        39Mi       3.0Gi        28Gi
+Mem:            30Gi       2.4Gi        26Gi        35Mi       1.2Gi        27Gi
 Inter:          31Gi          0B        31Gi
 
 --- GCC ---

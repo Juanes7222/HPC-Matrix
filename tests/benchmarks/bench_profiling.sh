@@ -124,10 +124,12 @@ compile_binaries() {
 perf_extract() {
     local file="$1" keyword="$2"
     [[ ! -s "${file}" ]] && echo "0" && return
+    # || echo "0" protege contra grep sin coincidencias (exit 1 con set -e)
     grep -iE "^[[:space:]]*[0-9,].*${keyword}" "${file}" \
         | grep -v "^#" \
         | head -1 \
-        | awk '{gsub(",", "", $1); printf "%d", $1+0}'
+        | awk '{gsub(",", "", $1); printf "%d", $1+0}' \
+        || echo "0"
 }
 
 parse_peak_mb() {

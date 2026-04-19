@@ -1,0 +1,44 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 714  of event 'cpu/cycles/Pu'
+# Event count (approx.): 3299413275
+#
+# Overhead  Command       Shared Object         Symbol                 
+# ........  ............  ....................  .......................
+#
+    98.45%  mul_seq_perf  mul_seq_perf          [.] matrixMultiplyRange
+            |
+            ---matrixMultiplyRange
+               0x555555d68050
+               0x6ea1bef697d001c9
+
+     0.71%  mul_seq_perf  libc.so.6             [.] random
+            |
+            ---__random (inlined)
+               |          
+                --0.66%--rand
+                          fillMatrix
+
+     0.54%  mul_seq_perf  libc.so.6             [.] random_r
+            |
+            ---__random_r (inlined)
+               rand
+               fillMatrix
+
+     0.15%  mul_seq_perf  [unknown]             [k] 0xffffffffbcdf4bec
+     0.13%  mul_seq_perf  mul_seq_perf          [.] fillMatrix
+     0.02%  mul_seq_perf  [unknown]             [k] 0xffffffffbba01280
+     0.00%  mul_seq_perf  [unknown]             [k] 0xffffffffbbb0410b
+     0.00%  mul_seq_perf  ld-linux-x86-64.so.2  [.] 0x0000000000017b1f
+     0.00%  mul_seq_perf  mul_seq_perf          [.] matrixGenerator
+     0.00%  mul_seq_perf  ld-linux-x86-64.so.2  [.] 0x000000000001f7ab
+     0.00%  mul_seq_perf  libc.so.6             [.] 0x00000000000a49e5
+     0.00%  mul_seq_perf  libc.so.6             [.] 0x00000000000a4eff
+
+
+#
+# (Tip: To adjust path to source files to local file system use perf report --prefix=... --prefix-strip=...)
+#
