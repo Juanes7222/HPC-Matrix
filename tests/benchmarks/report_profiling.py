@@ -1,22 +1,16 @@
-#!/usr/bin/env python3
 """
 report_profiling.py
-Professional report generator for sequential matrix multiplication profiling.
-
+...
 Reads:
   - data_profiling.csv
   - raw/N*/gprof_report.txt
   - raw/N*/perf_stat.txt
   - raw/N*/perf_record_report.txt
+  - raw/N*/perf_mem_report.txt        # <-- agregar
   - raw/N*/cachegrind_report.txt
   - raw/N*/massif_report.txt
   - raw/N*/timing_runs.txt
-
-Generates:
-  - charts_profiling/*.png
-  - reporte_profiling.xlsx
-  - profiling_report.html
-  - profiling_table.tex
+...
 """
 
 from __future__ import annotations
@@ -436,6 +430,37 @@ def parse_perf_record(path: str, top_k: int = 8) -> dict[str, Any]:
 
     return {"samples": samples, "event_count": event_count, "top": rows[:top_k]}
 
+def parse_perf_mem(path: str) -> dict[str, Any]:
+    """
+    Parses the output of `perf mem -t load report --stdio --sort=mem`.
+    Returns a dict mapping each memory source label to its overhead percentage.
+
+    Expected input lines (after the header):
+        31.53%  LFB or LFB hit
+        29.70%  L1 or L1 hit
+        23.03%  L3 or L3 hit
+        12.91%  Local RAM or RAM hit
+         2.37%  L2 or L2 hit
+    """
+    text = read_text(path)
+    if not text:
+        return {"available": False, "sources": []}
+
+    sources = []
+    for line in text.splitlines():
+        # skip comment and empty lines
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        m = re.match(r"([\d.]+)%\s+(.+)", line)
+        if not m:
+            continue
+        pct = float(m.group(1))
+        label = m.group(2).strip()
+        sources.append({"label": label, "pct": pct})
+
+    return {"available": bool(sources), "sources": sources}
+
 
 def parse_cachegrind(path: str, top_k: int = 8, top_lines: int = 6) -> dict[str, Any]:
     text = read_text(path)
@@ -590,6 +615,7 @@ def collect_raw_analysis(df: pd.DataFrame) -> dict[int, dict[str, Any]]:
             "timing": parse_timing_runs(os.path.join(raw_n, "timing_runs.txt")),
             "gprof": parse_gprof_flat(os.path.join(raw_n, "gprof_report.txt")),
             "perf_record": parse_perf_record(os.path.join(raw_n, "perf_record_report.txt")),
+            "perf_mem":     parse_perf_mem(os.path.join(raw_n, "perf_mem_report.txt")),
             "cachegrind": parse_cachegrind(os.path.join(raw_n, "cachegrind_report.txt")),
             "massif": parse_massif(os.path.join(raw_n, "massif_report.txt")),
             "perf_stat_text": read_text(os.path.join(raw_n, "perf_stat.txt")),
@@ -790,6 +816,69 @@ def chart_timing_variability(df: pd.DataFrame, raw: dict[int, dict[str, Any]]) -
     fig.tight_layout()
     return save_figure(fig, "04_timing_variability.png")
 
+def chart_mem_access(raw: dict[int, dict[str, Any]]) -> str | None:
+    """
+    Stacked horizontal bar chart showing the memory access source distribution
+    (L1, L2, L3, LFB, RAM) for each matrix size measured by perf mem.
+    Only renders if at least one size has perf_mem data available.
+    """
+    sizes = sorted(raw.keys())
+    data_by_label: dict[str, list[float]] = {}
+    valid_sizes = []
+
+    for n in sizes:
+        sources = raw[n].get("perf_mem", {}).get("sources", [])
+        if not sources:
+            continue
+        valid_sizes.append(n)
+        for s in sources:
+            data_by_label.setdefault(s["label"], [0.0] * len(valid_sizes))
+            data_by_label[s["label"]][-1] = s["pct"]
+
+    if not valid_sizes:
+        return None
+
+    for label in data_by_label:
+        while len(data_by_label[label]) < len(valid_sizes):
+            data_by_label[label].append(0.0)
+
+    fig, ax = plt.subplots(figsize=(10, max(4, len(valid_sizes) * 1.4)))
+
+    colors = ["#2E75B6", "#70AD47", "#ED7D31", "#C00000", "#7030A0", "#1F9EB7"]
+    y_labels = [f"N={n}" for n in valid_sizes]
+    bottoms = [0.0] * len(valid_sizes)
+
+    for i, (label, values) in enumerate(data_by_label.items()):
+        bars = ax.barh(
+            y_labels,
+            values,
+            left=bottoms,
+            label=label,
+            color=colors[i % len(colors)],
+            height=0.55,
+        )
+        for bar, val in zip(bars, values):
+            if val >= 2.0:
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    bar.get_y() + bar.get_height() / 2,
+                    f"{val:.1f}%",
+                    ha="center",
+                    va="center",
+                    fontsize=8,
+                    color="white",
+                    fontweight="bold",
+                )
+        bottoms = [b + v for b, v in zip(bottoms, values)]
+
+    ax.set_xlabel("% de accesos muestreados")
+    ax.set_title("Distribución de accesos a memoria por nivel de jerarquía (perf mem)")
+    ax.legend(loc="lower right", fontsize=9)
+    ax.set_xlim(0, 105)
+
+    fig.tight_layout()
+    return save_figure(fig, "06_mem_access_distribution.png")
+
 
 def _barh(ax, rows: list[dict[str, Any]], label_key: str, value_key: str, title: str, color: str):
     if not rows:
@@ -833,6 +922,7 @@ def build_chart_pack(df: pd.DataFrame, raw: dict[int, dict[str, Any]]) -> list[s
         chart_counters(df),
         chart_timing_variability(df, raw),
         chart_hotspots(df, raw),
+        chart_mem_access(raw),
     ]
     return [p for p in paths if p and os.path.exists(p)]
 
@@ -1247,6 +1337,23 @@ def write_notes_sheet(wb: Workbook, df: pd.DataFrame, raw: dict[int, dict[str, A
             f"N={largest_n}",
             f"Media={fmt_num(timing.get('mean_ms'), 3)} ms, std={fmt_num(timing.get('std_ms'), 3)} ms, CV={fmt_pct(timing.get('cv_pct'), 2)}."
         ))
+        
+    for n in df["matrix_size"].astype(int).tolist():
+        mem_data = raw.get(n, {}).get("perf_mem", {})
+        if not mem_data.get("available"):
+            continue
+        sources = mem_data["sources"]
+        # Find RAM and L1 shares for this N
+        ram_pct  = next((s["pct"] for s in sources if "RAM"  in s["label"]), None)
+        l1_pct   = next((s["pct"] for s in sources if "L1"   in s["label"]), None)
+        lfb_pct  = next((s["pct"] for s in sources if "LFB"  in s["label"]), None)
+        summary  = ", ".join(f"{s['label']}={s['pct']:.1f}%" for s in sources)
+        notes.append((
+            "perf mem",
+            f"N={n}",
+            f"Distribución de accesos: {summary}."
+            + (f" RAM={ram_pct:.1f}% indica presión alta sobre memoria principal." if ram_pct and ram_pct > 10 else ""),
+        ))
 
     r = 3
     for topic, context, note in notes:
@@ -1349,6 +1456,32 @@ def build_html_report(df: pd.DataFrame, raw: dict[int, dict[str, Any]], chart_pa
     cache_top = raw.get(largest_n, {}).get("cachegrind", {}).get("top_functions", [])
     hot_lines = raw.get(largest_n, {}).get("cachegrind", {}).get("hot_lines", [])
     massif = raw.get(largest_n, {}).get("massif", {})
+    
+    def _html_mem_table(raw_all: dict[int, dict]) -> str:
+        rows_html = []
+        for n in sorted(raw_all.keys()):
+            sources = raw_all[n].get("perf_mem", {}).get("sources", [])
+            if not sources:
+                continue
+            for s in sources:
+                rows_html.append(
+                    f"<tr><td>N={n}</td>"
+                    f"<td>{html.escape(s['label'])}</td>"
+                    f"<td>{s['pct']:.2f}%</td></tr>"
+                )
+        if not rows_html:
+            return ""
+        return f"""
+        <div class="card">
+        <h3>perf mem — distribución de accesos a memoria</h3>
+        <table>
+            <thead><tr><th>N</th><th>Nivel</th><th>Share</th></tr></thead>
+            <tbody>{''.join(rows_html)}</tbody>
+        </table>
+        </div>
+        """
+
+    mem_table_html = _html_mem_table(raw)
 
     cards = []
     if best_gflops is not None:
@@ -1592,6 +1725,7 @@ code {{
       {html_hotspot_table("cachegrind dominant functions", cache_top, "name", "pct")}
       {allocators_html}
       {hot_lines_html}
+      {mem_table_html}
     </section>
 
     <section class="section grid charts">

@@ -204,6 +204,36 @@ branch-instructions,branch-misses \
 }
 
 # ---------------------------------------------------------------------------
+# run_perf_mem <n> <raw_dir>
+#   Samples memory load accesses and reports the distribution across the
+#   memory hierarchy (L1, L2, L3, LFB, RAM).  --sort=mem groups samples by
+#   access type so the output is directly comparable across sizes.
+# ---------------------------------------------------------------------------
+run_perf_mem() {
+    local n="$1" raw_dir="$2"
+    local out="${raw_dir}/perf_mem_report.txt"
+    should_skip "${out}" && return
+
+    log_info "  perf mem N=${n}"
+    if ! command -v perf &>/dev/null; then
+        touch "${out}"
+        return
+    fi
+
+    perf mem record \
+        -o "${raw_dir}/perf_mem.data" \
+        "${BIN_PERF}" "${n}" > /dev/null 2>&1 \
+        || log_warn "perf mem record failed for N=${n}"
+
+    perf mem -t load report \
+        --stdio \
+        --sort=mem \
+        -i "${raw_dir}/perf_mem.data" > "${out}" 2>&1 || true
+
+    rm -f "${raw_dir}/perf_mem.data"
+}
+
+# ---------------------------------------------------------------------------
 # run_perf_record <n> <raw_dir>
 #   Samples the binary at ~1000 Hz with full call-graph capture (-g).
 #   The resulting report shows the real hot-spot hierarchy under -O2,
@@ -371,6 +401,7 @@ profile_size() {
     run_timing_multi "${n}" "${raw_dir}" || log_warn "timing phase failed for N=${n}"
     run_gprof        "${n}" "${raw_dir}" || log_warn "gprof phase failed for N=${n}"
     run_perf         "${n}" "${raw_dir}" || log_warn "perf stat phase failed for N=${n}"
+    run_perf_mem "${n}" "${raw_dir}" || log_warn "perf mem phase failed for N=${n}"
     run_perf_record  "${n}" "${raw_dir}" || log_warn "perf record phase failed for N=${n}"
     run_massif       "${n}" "${raw_dir}" || log_warn "massif phase failed for N=${n}"
     run_cachegrind   "${n}" "${raw_dir}" || log_warn "cachegrind phase failed for N=${n}"

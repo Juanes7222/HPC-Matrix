@@ -1,4 +1,0 @@
-machine,impl,flags,threads,matrix_size,repetition,wall_time_ms
-6,mul_omp,"-Wall",8,400,1,62.251
-6,mul_omp,"-Wall",8,800,1,538.707
-6,mul_omp,"-Wall",8,1600,1,6040.658
