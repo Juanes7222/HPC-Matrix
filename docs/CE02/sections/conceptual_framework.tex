@@ -1,0 +1,74 @@
+
+%===================================
+%===================================
+\section{Marco Conceptual}
+\label{sec:Marco Conceptual}
+
+%================================
+\subsection{Características del PC 1}
+\label{sec:Características del PC 1} 
+
+\begin{itemize}
+   \item Procesador: Ryzen 5 7600X
+   \item Cantidad de núcleos: 6
+   \item Cantidad de subprocesos/hilos: 12
+   \item Frecuencia básica del procesador: 4.7GHz
+   \item Frecuencia Turbo máxima: 5.3GHz
+   \item Memoria RAM: 32GB DDR5 @ 5200 MHz
+   \item L1 Instruction Cache          32.0 KB x 6
+   \item L1 Data Cache                 32.0 KB x 6
+   \item L2 Cache                      1.00 MB x 6
+   \item L3 Cache                      32.0 MB
+   \item Sistema operativo: Arch Linux
+\end{itemize}
+
+
+%================================
+\subsection{Características del PC 2}
+\label{sec:Características del PC 2}
+
+
+\begin{itemize}
+   \item Procesador: Intel Core i7-11800H
+   \item Cantidad de núcleos: 8
+   \item Cantidad de subprocesos/hilos: 16
+   \item Frecuencia básica del procesador: 4.6GHz
+   \item Frecuencia Turbo máxima: 5.0GHz
+   \item Memoria RAM: 16GB DDR4 @ 3200 MHz
+   \item L1 Instruction Cache          32.0 KB x 8
+   \item L1 Data Cache                 48.0 KB x 8
+   \item L2 Cache                      1.25 MB x 8
+   \item L3 Cache                      24.0 MB
+
+   \item Sistema operativo: Debian GNU/Linux 12
+\end{itemize}
+
+
+\subsection{Características del software}
+
+Se puede encontrar el código fuente del proyecto en el siguiente repositorio de GitHub: \url{https://github.com/Juanes7222/HPC-Matrix.git}
+
+El programa implementa la multiplicación de matrices cuadradas de orden \(n\) haciendo uso de paralelismo a nivel de hilos mediante la biblioteca OpenMP. Su estructura se organiza en tres componentes principales: la extracción y validación de argumentos de entrada, el núcleo de cómputo paralelo, y la orquestación general del flujo de ejecución en la función principal.
+
+\subsubsection{Extracción de parámetros de entrada}
+
+La función \texttt{extractThreadCount} se encarga de leer el segundo argumento de la línea de comandos, que corresponde al número de hilos deseado. Si dicho argumento está ausente o su valor no es un entero positivo, el programa termina de forma controlada emitiendo un mensaje de error descriptivo. 
+
+\subsubsection{Núcleo de multiplicación paralela}
+
+El corazón del programa reside en la función de multiplicación paralela, que recibe dos matrices de enteros de tamaño \(n \times n\) junto con la matriz de salida. La multiplicación sigue el algoritmo clásico de producto matricial, donde cada elemento \(\text{result}[i][j]\) se calcula como la suma acumulada
+\[
+    \sum_{k=0}^{n-1} \text{matrix1}[i][k] \cdot \text{matrix2}[k][j].
+\]
+
+La directiva de paralelización distribuye los bucles externos sobre los índices \(i\) y \(j\) entre los hilos disponibles. La cláusula \texttt{collapse(2)} fusiona ambos bucles en un único espacio de iteración de tamaño \(n^2\), lo que incrementa la granularidad del trabajo disponible para el planificador de OpenMP y mejora el balance de carga, especialmente cuando \(n\) es pequeño en relación con el número de hilos. La distribución estática de iteraciones mediante \texttt{schedule(static)} es óptima para cargas de trabajo homogéneas como la multiplicación densa de matrices, donde cada iteración implica exactamente \(n\) operaciones de multiplicación-acumulación.
+
+El manejo del alcance de variables se hace explícito mediante \texttt{default(none)}, que obliga al programador a declarar el rol de cada variable. Las matrices se declaran como compartidas, dado que todos los hilos acceden a las mismas estructuras en memoria sin conflictos de escritura sobre las matrices de entrada, y con escrituras disjuntas sobre la matriz de salida, ya que cada hilo escribe en un elemento \([i][j]\) único. La variable escalar \(n\) se declara como \texttt{firstprivate}, proveyendo a cada hilo una copia local inicializada con el valor original y evitando accesos concurrentes al mismo objeto en memoria.
+
+Adicionalmente, la directiva de desenrollado parcial instruye al entorno de ejecución de OpenMP 6.1 para desenrollar el bucle interno en grupos de cuatro iteraciones. Este desenrollado reduce la sobrecarga de las instrucciones de control de bucle y expone mayor paralelismo a nivel de instrucción al pipeline del procesador, permitiendo que la unidad de ejecución emita múltiples operaciones de multiplicación-acumulación de forma simultánea.
+
+\subsubsection{Flujo de ejecución principal}
+
+La función principal orquesta el flujo completo del programa. Primero extrae el tamaño de la matriz \(n\) y el número de hilos desde los argumentos de entrada. Como medida de seguridad, si el número de hilos solicitado supera \(n\), se recorta a ese valor, evitando la asignación de hilos sin trabajo útil que generarían sobrecarga innecesaria.
+
+A continuación, las tres matrices se asignan dinámicamente y las dos matrices de entrada se inicializan con valores aleatorios. El tiempo de ejecución se mide con precisión usando un reloj monotónico, que provee una referencia de tiempo no sujeta a ajustes del sistema y garantiza mediciones de latencia fiables. Tras la multiplicación paralela, el tiempo transcurrido se reporta en milisegundos y las tres matrices se liberan de la memoria dinámica, evitando fugas de memoria.

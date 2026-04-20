@@ -1,0 +1,361 @@
+\section{Perfilado de código}
+
+El perfilado de código (\textit{profiling}) es el proceso de medir el comportamiento
+de un programa en ejecución con el objetivo de identificar dónde se concentra el
+costo computacional y de memoria.
+A diferencia del análisis estático, el perfilado opera sobre la ejecución real del
+programa, capturando métricas como tiempo por función, contadores de hardware del
+procesador, comportamiento de la jerarquía de caché y consumo dinámico de memoria.
+Esto permite construir evidencia empírica que justifica las decisiones de optimización
+y sirve de línea base para comparar implementaciones alternativas.
+
+El script \texttt{bench\_profiling.sh} orquesta seis técnicas de perfilado
+complementarias sobre la implementación secuencial de multiplicación de matrices,
+para los tamaños $N \in \{128, 256, 512, 1024\}$.
+Cada técnica responde una pregunta distinta: cuánto tiempo tarda, en qué función
+se acumula ese tiempo, qué eventos de hardware ocurren, cómo se comporta la
+jerarquía de caché y cuánta memoria dinámica se consume.
+Los resultados de todas las herramientas se consolidan en un archivo CSV
+(\texttt{data\_profiling.csv}) que sirve de entrada al generador de reportes.
+
+
+\subsection{Temporización estadística}
+
+La primera técnica consiste en ejecutar el binario \texttt{mul\_seq\_perf}
+un total de $\text{TIMING\_RUNS} = 10$ veces de forma independiente y registrar
+el tiempo reportado por el propio programa en milisegundos.
+La primera ejecución se descarta como \textit{warm-up}: su propósito es poblar
+la caché de instrucciones y datos del procesador para que las corridas medidas
+no incluyan el costo de la carga inicial desde memoria principal.
+
+Con los valores obtenidos se calcula la media aritmética $\bar{t}$ y la desviación
+estándar $\sigma_t$.
+El coeficiente de variación
+\begin{equation}
+    CV = \frac{\sigma_t}{\bar{t}} \times 100\%
+\end{equation}
+cuantifica la estabilidad experimental: un $CV$ bajo (generalmente menor al 2\%)
+indica que las mediciones son reproducibles y no están contaminadas por
+interferencia del sistema operativo o por efectos térmicos del procesador.
+Un $CV$ elevado, en cambio, sugiere que el sistema no se encontraba en condiciones
+estables durante la medición.
+
+El rendimiento en GFLOP/s se deriva de la temporización mediante la relación
+\begin{equation}
+    \text{GFLOPS} = \frac{2N^3}{\bar{t} \times 10^{-3} \times 10^{9}},
+\end{equation}
+donde $2N^3$ es el número exacto de operaciones de multiplicación-acumulación
+del algoritmo estándar de multiplicación de matrices densas.
+Este valor normaliza el rendimiento respecto al tamaño del problema y permite
+comparar directamente distintas implementaciones y arquitecturas.
+
+
+\subsection{gprof: perfilado por instrumentación del compilador}
+
+\texttt{gprof} es una herramienta de perfilado basada en instrumentación generada
+en tiempo de compilación~\cite{graham1982gprof}.
+El binario \texttt{mul\_seq\_gprof} se compila con las flags \texttt{-pg} y
+\texttt{-fno-inline}:
+
+\begin{itemize}
+    \item \textbf{\texttt{-pg}}: instruye al compilador para insertar una llamada a
+        la función \texttt{mcount()} al inicio de cada función del programa.
+        Durante la ejecución, estas llamadas actualizan en tiempo real los
+        contadores de frecuencia de invocación y los acumuladores de tiempo en un
+        archivo binario llamado \texttt{gmon.out}.
+    \item \textbf{\texttt{-fno-inline}}: impide que el compilador reemplace el cuerpo
+        de las funciones directamente en sus sitios de llamada (\textit{inlining}).
+        Sin esta flag, bajo optimización \texttt{-O2}, funciones pequeñas del kernel
+        de multiplicación podrían desaparecer del perfil porque ya no existen como
+        entidades separadas en el código objeto.
+\end{itemize}
+
+El reporte que produce \texttt{gprof} tiene dos partes principales:
+
+\begin{itemize}
+    \item \textbf{Flat profile}: lista cada función con el porcentaje del tiempo total
+        que le corresponde, los segundos acumulados, el número de veces que fue
+        invocada y el tiempo promedio por llamada.
+        Este perfil responde directamente la pregunta \textit{``¿en qué función
+        pasa el programa la mayor parte del tiempo?''}.
+    \item \textbf{Call graph}: muestra la jerarquía de llamadas entre funciones y
+        cuánto tiempo se propaga desde cada función hija hacia su función padre.
+        Es útil para distinguir si una función es costosa por su propia lógica o
+        porque invoca a subfunciones costosas.
+\end{itemize}
+
+La limitación inherente de \texttt{gprof} es que su medición del tiempo se basa
+en muestreo estadístico del contador de programa (\textit{program counter}) con
+una resolución de aproximadamente 10\,ms.
+Para programas de corta duración o con alta granularidad de funciones los
+porcentajes pueden ser estadísticamente ruidosos.
+Además, al requerir recompilación con instrumentación, el binario perfilado no es
+idéntico al binario de producción, lo que puede alterar el comportamiento de caché
+y el layout de código.
+
+
+\subsection{perf stat: contadores de hardware de la PMU}
+
+\texttt{perf stat} accede directamente a la \textit{Performance Monitoring Unit}
+(PMU), un conjunto de registros físicos presentes en el procesador
+diseñados específicamente para contar eventos de hardware con un overhead
+mínimo sobre el programa medido.
+El script lo ejecuta con la flag \texttt{-r~5}, lo que indica a \texttt{perf}
+que repita la ejecución cinco veces y reporte el promedio de cada contador junto
+con su coeficiente de variación, brindando así información estadística sobre la
+estabilidad de las mediciones de hardware.
+
+El conjunto de eventos medidos cubre cuatro categorías de cuello de botella típicos
+en el contexto de la multiplicación de matrices:
+
+\paragraph{Throughput del pipeline.}
+Los eventos \texttt{cycles} e \texttt{instructions} permiten calcular el
+\textit{Instructions Per Cycle} (IPC):
+\begin{equation}
+    \text{IPC} = \frac{\text{instructions}}{\text{cycles}}.
+\end{equation}
+Un IPC cercano a 1 indica que por cada ciclo de reloj el procesador completa en
+promedio una instrucción.
+Valores menores a 1 señalan que el pipeline sufre \textit{stalls} frecuentes,
+generalmente por esperas de memoria.
+Valores mayores a 2 indican que el procesador está emitiendo múltiples
+instrucciones por ciclo de forma efectiva gracias al paralelismo a nivel de
+instrucción (ILP).
+
+\paragraph{Caché de último nivel (LLC).}
+Los eventos \texttt{cache-references} y \texttt{cache-misses} miden la presión
+sobre la LLC (\textit{Last Level Cache}).
+La tasa de fallo
+\begin{equation}
+    \text{LLC miss rate} = \frac{\text{cache-misses}}{\text{cache-references}} \times 100\%
+\end{equation}
+indica qué fracción de los accesos a la LLC no encontró el dato solicitado y tuvo
+que recurrir a la memoria principal (DRAM).
+En multiplicación de matrices, para tamaños grandes de $N$, las tres matrices no
+caben simultáneamente en LLC y esta tasa escala drásticamente, siendo el principal
+responsable de la degradación del rendimiento con respecto al pico teórico del
+procesador.
+
+\paragraph{Caché L1 de datos (L1-D).}
+Los eventos \texttt{L1-dcache-loads} y \texttt{L1-dcache-load-misses} miden la
+localidad efectiva del acceso a datos en el nivel de caché más cercano al
+procesador.
+La tasa de fallo en L1-D es el indicador más sensible al orden de los bucles en
+el algoritmo: el orden canónico $i$-$j$-$k$ produce accesos no contiguos a la
+columna \texttt{matrix2[k][j]}, penalizando directamente este contador.
+
+\paragraph{Translation Lookaside Buffer (TLB).}
+Los eventos \texttt{dTLB-loads} y \texttt{dTLB-load-misses} miden el costo
+de la traducción de direcciones virtuales a físicas.
+El TLB es una caché especializada de entradas de la tabla de páginas del sistema
+operativo.
+Cuando se trabaja con matrices grandes cuyos elementos están distribuidos en
+muchas páginas de memoria virtual, los fallos de TLB agregan latencia adicional
+independiente de la jerarquía de caché de datos.
+Esta métrica permite separar si la degradación de rendimiento se debe a presión
+de caché o a presión de TLB.
+
+\paragraph{Predictor de saltos.}
+Los eventos \texttt{branch-instructions} y \texttt{branch-misses} cuantifican la
+efectividad del predictor de saltos del procesador.
+En un algoritmo de multiplicación de matrices con bucles perfectamente regulares
+se espera una tasa de fallo del predictor cercana a cero, ya que todos los saltos
+son altamente predecibles.
+Un valor elevado sería indicativo de lógica condicional inesperada en el código
+o de fallos en la vectorización automática.
+
+
+\subsection{perf record: muestreo basado en interrupciones de hardware}
+
+Mientras que \texttt{perf stat} reporta totales globales, \texttt{perf record}
+ofrece una vista espacial de dónde en el código ocurren los eventos de CPU.
+El script lo ejecuta con las opciones \texttt{-F~999} y \texttt{-g}:
+
+\begin{itemize}
+    \item \textbf{\texttt{-F 999}}: configura la frecuencia de muestreo en
+        aproximadamente 999 muestras por segundo.
+        Cada muestra se captura mediante una interrupción de hardware generada por
+        la PMU cuando el contador de ciclos alcanza un umbral predefinido.
+    \item \textbf{\texttt{-g}}: captura el \textit{call stack} completo en el
+        momento de cada interrupción, lo que permite reconstruir no solo qué
+        función estaba activa sino toda la cadena de llamadas que llegó hasta ella.
+\end{itemize}
+
+El resultado es un histograma que responde la pregunta: \textit{``¿qué fracción
+del tiempo de CPU estuvo el procesador ejecutando instrucciones de cada
+función?''}
+Esta métrica es equivalente en concepto al flat profile de \texttt{gprof}, pero
+con dos ventajas clave: \texttt{perf record} no requiere recompilar el programa y
+mide el binario en sus condiciones reales de optimización \texttt{-O2}, incluyendo
+el código de las bibliotecas del sistema como la libc.
+Esto lo convierte en el perfilador de referencia para confirmar los resultados de
+\texttt{gprof} en condiciones de producción.
+
+
+\subsection{Valgrind Massif: perfilado de uso del heap}
+
+Massif es una herramienta del framework Valgrind que ejecuta el programa dentro de
+una máquina virtual de instrumentación binaria e intercepta todas las llamadas a
+las funciones de gestión de memoria dinámica (\texttt{malloc}, \texttt{calloc},
+\texttt{realloc}, \texttt{free} y sus equivalentes en C++) sin necesidad de
+modificar el código fuente.
+
+Durante la ejecución, Massif registra periódicamente \textit{snapshots} del estado
+del heap, cada uno compuesto por:
+
+\begin{itemize}
+    \item \textbf{Total bytes}: memoria total reservada en ese instante.
+    \item \textbf{Useful heap bytes}: memoria correspondiente a bloques solicitados
+        explícitamente por el programa.
+    \item \textbf{Extra heap bytes}: overhead interno del gestor de memoria
+        (\textit{metadata} de los bloques, alineación y fragmentación interna).
+\end{itemize}
+
+La herramienta \texttt{ms\_print} formatea estos snapshots en un reporte textual
+con una gráfica ASCII de la evolución temporal del heap, identificando el snapshot
+de pico y la pila de llamadas que originó las reservas de mayor tamaño.
+
+El valor que el script extrae y almacena en el CSV es el \textbf{peak heap en MB},
+que representa el máximo uso de memoria dinámica durante toda la ejecución.
+Para la multiplicación de matrices con representación \textit{array de punteros}
+(\texttt{int~**}), el modelo teórico de este valor es:
+\begin{equation}
+    M_{\text{teórico}} = \frac{3 \cdot \left(N^2 \cdot 4 + N \cdot 8\right)}{1024^2}
+    \;\text{MB},
+\end{equation}
+donde $N^2 \cdot 4$ son los bytes de datos enteros de cada matriz y $N \cdot 8$
+son los bytes del array de punteros a filas en una arquitectura de 64 bits.
+La diferencia entre el valor medido por Massif y este modelo teórico cuantifica el
+overhead de fragmentación interna del asignador de memoria del sistema.
+
+
+\subsection{Valgrind Cachegrind: simulación de la jerarquía de caché}
+
+Cachegrind es una herramienta del framework Valgrind que, a diferencia de
+\texttt{perf stat}, no utiliza contadores de hardware reales sino que
+\textbf{simula} la jerarquía de caché del procesador mediante instrumentación
+a nivel de instrucción~\cite{nethercote2007valgrind}.
+Cada operación de carga y almacenamiento del programa es interceptada y procesada
+por un modelo de caché configurable que reproduce la estructura de caché L1, L2
+y LLC del sistema.
+
+La métrica fundamental que produce Cachegrind es \textbf{Ir}
+(\textit{Instruction References}): el conteo exacto y determinístico de
+instrucciones ejecutadas durante toda la corrida.
+A diferencia de los contadores de hardware, este valor es completamente
+reproducible entre ejecuciones, ya que no depende del estado transitorio del
+hardware.
+
+El reporte generado por \texttt{cg\_annotate} presenta tres niveles de
+granularidad:
+
+\begin{itemize}
+    \item \textbf{Program totals}: instrucciones totales de todo el programa,
+        incluyendo bibliotecas del sistema.
+    \item \textbf{Function summary}: distribución porcentual de instrucciones por
+        función, ordenadas de mayor a menor costo.
+        Permite identificar el hotspot dominante con precisión absoluta.
+    \item \textbf{Annotated source}: distribución de instrucciones línea por
+        línea dentro del código fuente.
+        Es el nivel más granular: identifica exactamente qué sentencias del código
+        son las más costosas en términos de instrucciones ejecutadas, permitiendo
+        correlacionar el costo con el acceso específico a elementos de las matrices.
+\end{itemize}
+
+La principal diferencia con \texttt{perf stat} es su naturaleza determinística:
+Cachegrind siempre produce el mismo conteo de instrucciones para una entrada dada,
+mientras que los contadores de hardware presentan variación estadística entre
+corridas por efectos del entorno.
+Sin embargo, Cachegrind ejecuta el programa entre 20 y 100 veces más lento que
+su velocidad normal debido al overhead de la instrumentación binaria, por lo que
+sus tiempos de ejecución no son representativos del rendimiento real.
+
+
+\subsection{Visión de conjunto y complementariedad}
+
+Las seis técnicas de perfilado del script cubren dimensiones ortogonales del
+comportamiento del programa: ninguna de ellas por sí sola es suficiente para
+construir un diagnóstico completo.
+La Tabla~\ref{tab:profiling_tools} resume la complementariedad entre herramientas.
+
+\begin{table}[h]
+\centering
+\caption{Herramientas de perfilado utilizadas, su tipo de medición y su limitación principal}
+\label{tab:profiling_tools}
+\begin{tabular}{p{2.8cm}p{3.0cm}p{4.5cm}p{3.5cm}}
+\toprule
+\textbf{Herramienta} & \textbf{Tipo} & \textbf{Pregunta que responde} & \textbf{Limitación principal} \\
+\midrule
+Temporización    & Wall-clock estadístico    & ¿Cuánto tarda? ¿Es estable? & Sin resolución por función \\
+\texttt{gprof}   & Instrumentación compilador & ¿Qué función consume más CPU? & Binario modificado; resolución de 10\,ms \\
+\texttt{perf stat} & Contadores hardware (PMU) & ¿Qué eventos de hardware ocurren? & Solo totales globales \\
+\texttt{perf record} & Muestreo por interrupciones & ¿Dónde está el CPU la mayor parte del tiempo? & Resolución de $\sim$1\,ms \\
+Valgrind Massif  & Intercepción de heap       & ¿Cuánta memoria dinámica se usa? & 5--30$\times$ overhead \\
+Valgrind Cachegrind & Simulación de caché     & ¿Qué instrucciones son más costosas? & Modelo aproximado; 20--100$\times$ overhead \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+%================================
+\subsection{Resultados del perfilado}
+\label{sec:Resultados del perfilado}
+
+La Tabla~\ref{tab:seq_profiling} consolida los resultados de las seis técnicas de perfilado aplicadas a la multiplicación de matrices clásica (bucle canónico $i$-$j$-$k$) para tamaños crecientes, $N \in \{128, 256, 512, 1024\}$. La triangulación de herramientas permite identificar con precisión el origen de las limitaciones de rendimiento observadas.
+
+\begin{table}[h]
+\centering
+\caption{Caracterización de la implementación secuencial de multiplicación de matrices}
+\label{tab:seq_profiling}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{rrrrrrrrrr}
+\toprule
+$N$ & Time mean (ms) & Std (ms) & GFLOPS & IPC & Cache Miss \% & L1 Miss \% & dTLB Miss \% & Branch Miss \% & Peak Heap (MB) \\
+\midrule
+128  & 0.750   & 0.008 & 5.5924 & 5.6341 & 1.44 & 2.20  & 0.0000 & 0.0000 & 0.194  \\
+256  & 6.014   & 0.012 & 5.5794 & 3.4133 & 0.42 & 1.88  & 1.8833 & 0.0064 & 0.760  \\
+512  & 79.801  & 0.165 & 3.3638 & 2.8634 & 0.04 & 19.78 & 0.0035 & 0.1952 & 3.016  \\
+1024 & 702.284 & 5.780 & 3.0579 & 2.6175 & 1.81 & 29.74 & 0.0019 & 0.0956 & 12.027 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\subsubsection{Localización del hotspot}
+
+Las herramientas de perfilado coinciden en señalar la función de multiplicación como la única fuente relevante de cómputo. El reporte de gprof le atribuye el 100\% del tiempo de ejecución, mientras que perf record indica que para $N=1024$ esta función concentra el 98.45\% de la actividad en el procesador, dejando apenas un 1.5\% restante a rutinas del sistema como la inicialización y el llenado de matrices. Valgrind Cachegrind refuerza este resultado al asociarle el 98.5\% de las referencias de instrucción contabilizadas. El diagnóstico es directo: todo el peso computacional recae sobre los tres bucles anidados del algoritmo, y cualquier optimización debe dirigirse exclusivamente a esa región.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=1\textwidth]{images/profiling/05_hotspots_largest_n.png}
+\caption{Distribución de tiempo e instrucciones en el hotspot principal durante el perfilado para el tamaño mayor ($N=1024$).}
+\label{fig:prof_hotspot}
+\end{figure}
+
+\subsubsection{Limitaciones de hardware}
+
+Las métricas recopiladas con perf stat muestran una caída sostenida del rendimiento a medida que crece el tamaño de la matriz, pasando de 5.59 GFLOPS para $N=128$ hasta 3.05 GFLOPS para $N=1024$.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=1\textwidth]{images/profiling/01_performance_summary.png}
+\caption{Resumen de rendimiento mostrando la caída progresiva de GFLOPS en función de los incrementos en tiempo y en la talla $N$.}
+\label{fig:prof_perf}
+\end{figure}
+
+Esta degradación tiene tres causas que se pudieron indentificar. La primera es la presión sobre la caché de nivel 1: cuando las matrices son pequeñas ($N=128$), los datos residen prácticamente en caché y la tasa de fallos en L1 es de apenas 2.20\%. Al escalar a $N=1024$, esa tasa asciende a 29.74\%, lo que refleja un patrón de acceso desfavorable. En C, los arreglos bidimensionales se almacenan en orden de filas, de modo que recorrer la segunda matriz por columnas, como exige el producto interior, genera accesos no contiguos en memoria y produce líneas de caché ineficientes.
+
+La segunda causa es la degradación del IPC. Para $N=128$, el procesador logra un IPC de 5.63, aprovechando el paralelismo a nivel de instrucción disponible cuando los datos están en caché. A medida que los fallos de L1 obligan a recurrir a niveles más lentos de la jerarquía de memoria, el pipeline queda en espera y el IPC cae a 2.61 para $N=1024$.
+
+El tercer aspecto relevante es la estabilidad de los demás contadores. Los fallos de predicción de ramas se mantienen por debajo del 0.2\% en todos los casos, lo cual es esperable dado el flujo de control regular de los bucles. Las presiones sobre la TLB tampoco representan un factor limitante, con tasas cercanas a cero en todos los tamaños evaluados. Esto confirma que la caché de datos de nivel 1 es el cuello de botella dominante.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=1\textwidth]{images/profiling/02_miss_rates.png}
+\caption{Correlación de tasas de fallo, acentuando el incremento en la caché de datos de nivel 1 frente a la estabilidad del predictor de ramas y la dTLB.}
+\label{fig:prof_miss}
+\end{figure}
+
+\subsubsection{Uso de memoria dinámica}
+
+El análisis con Valgrind Massif muestra que el consumo de heap escala de forma cuadrática con $N$, pasando de 0.194 MB para $N=128$ hasta 12.027 MB para $N=1024$. Este comportamiento coincide con la estimación teórica esperada: tres matrices de enteros de 32 bits con $N=1024$ requieren aproximadamente $1024 \times 1024 \times 4 \times 3 \approx 12$ MB. La ausencia de fragmentación o metadata excesiva confirma que el gestor de memoria del sistema no introduce sobrecarga anómala, y que cualquier limitante de rendimiento observada se origina en la ejecución del bucle de multiplicación y no en la gestión de memoria dinámica.

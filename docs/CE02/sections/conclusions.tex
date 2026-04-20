@@ -1,0 +1,16 @@
+
+%===================================
+%===================================
+\section{Conclusiones}
+\label{sec:Conclusiones}
+
+En este trabajo se implementaron y analizaron diferentes algoritmos para la multiplicación de matrices: el algoritmo secuencial, el algoritmo concurrente con hilos, el algoritmo concurrente por procesos y el algoritmo secuencial optimizado por cache line. Se realizaron pruebas utilizando diferentes tamaños de matrices y se midió el tiempo de ejecución para cada caso, aplicando optimizaciones por compilador y comparando los resultados obtenidos.
+
+\begin{enumerate}
+   \item El algoritmo concurrente con hilos proporcionó el mejor rendimiento general, llegando a acelerar el proceso más de 5x respecto a la versión base. Se observó que el punto óptimo se alcanza utilizando 6 hilos, lo cual coincide exactamente con la cantidad de núcleos físicos del procesador utilizado. Incrementar la cantidad de hilos más allá de este punto genera rendimientos decrecientes debido a la sobrecarga de gestión y contención de recursos.
+   \item La aplicación de banderas agresivas del compilador redujo de manera drástica el tiempo de ejecución para todos los casos al permitir vectorización y desenrollado de bucles. Al sumarle a esto la reestructuración del algoritmo con optimización de cache line, se logra mitigar fuertemente la latencia de memoria de la CPU, demostrando ser fundamental para matrices de gran escala.
+   \item La paralelización basada en procesos resultó ser el método más ineficiente, rindiendo incluso por debajo de la implementación secuencial estándar optimizada por compilador. Esto evidencia que el gran costo general del sistema operativo al tener que crear, gestionar y aislar la memoria para procesos independientes anula cualquier ventaja del cálculo en paralelo en este contexto.
+   \item Solo el algoritmo concurrente con hilos muestra grandes ahorros de tiempo en matrices pequeñas dada la alta sobrecarga inicial. Los beneficios reales del speedup y del uso adecuado de la memoria caché se revelan masivamente en tamaños de matriz superiores a 1600 y alcanzan su pico en las de $6400\times6400$.
+   \item Realmente ninguna de las optimizaciones por sí sola es suficiente para lograr un rendimiento sobresaliente. El algoritmo secuencial optimizado por cache line sin optimización por compilador apenas mejora respecto a la versión base, y el algoritmo concurrente con hilos sin optimización por compilador tampoco alcanza su máximo potencial. Es la combinación de todas estas técnicas lo que permite alcanzar los mejores resultados. Si solo analizaramos los resultados de cada optimización por separado, podríamos concluir erróneamente que ninguna de ellas es efectiva, cuando el propio algoritmo con optimización por compilador ya muestra una mejora significativa respecto a las otras.
+   \item El nulo beneficio del Hyper-Threading para este contexto: Pese a que el procesador contaba con 12 hilos lógicos (SMT), el rendimiento máximo se estancó en 6 hilos. Esto demuestra que la multiplicación de matrices, al ser una operación puramente limitada por la capacidad de las Unidades Lógico Aritméticas (ALU) y no por paradas (stalls) en la CPU, no se beneficia de hilos lógicos compitiendo por los mismos recursos físicos dentro del mismo núcleo.
+\end{enumerate}

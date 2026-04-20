@@ -1,0 +1,21 @@
+
+%===================================
+%===================================
+\section{Desarrollo}
+\label{sec:Desarrollo}
+
+
+Habiendo establecido el marco teórico y los objetivos del presente trabajo, se procede a detallar la implementación de los tres enfoques de programación para la multiplicación de matrices: secuencial, concurrente con hilos y paralela con procesos. Cada sección describe la metodología seguida, las decisiones de diseño tomadas y los aspectos técnicos relevantes que influyen en el rendimiento de cada implementación.
+
+\subsection{Implementación Secuencial}
+La implementación secuencial de la multiplicación de matrices se basa en el algoritmo clásico de tres bucles anidados, que itera sobre las filas de la primera matriz y las columnas de la segunda matriz para calcular cada elemento del resultado. Este enfoque es directo y fácil de entender, pero su complejidad de \(\mathcal{O}(n^3)\) lo hace ineficiente para matrices grandes. En esta implementación, se asigna memoria para las matrices utilizando arreglos dinámicos en C, y se inicializan con valores aleatorios para simular datos reales.
+
+\subsection{Implementación Concurrente con Hilos}
+La implementación concurrente con hilos se realiza utilizando la librería Pthreads, que permite crear múltiples hilos de ejecución dentro del mismo proceso. En este enfoque, se divide la tarea de multiplicación de matrices en bloques o filas, asignando cada bloque a un hilo diferente. Cada hilo calcula una parte del resultado de la multiplicación, y al finalizar, se sincronizan para asegurar que el resultado final esté completo. Este método aprovecha la capacidad de los procesadores multinúcleo para mejorar el rendimiento, aunque introduce desafíos relacionados con la gestión de memoria compartida y la sincronización entre hilos. 
+
+\subsection{Implementación Paralela con Procesos}
+La implementación paralela con procesos se lleva a cabo utilizando la llamada al sistema \texttt{fork}, que crea procesos independientes que no comparten memoria. En este enfoque, cada proceso se encarga de calcular una parte de la multiplicación de matrices, y los resultados se comunican a través de mecanismos de interproceso como tuberías o archivos temporales. Este método puede ofrecer un rendimiento mejorado en sistemas con múltiples núcleos, pero también introduce una sobrecarga significativa debido a la necesidad de comunicación entre procesos y la gestión de recursos del sistema operativo.
+
+
+\subsection{Calculo del tiempo de ejecución}
+Para medir el tiempo de ejecución de cada implementación, se utiliza la función \texttt{clock\_gettime} de la biblioteca estándar de C, que proporciona una alta resolución temporal. Se registra el tiempo antes y después de la ejecución del algoritmo de multiplicación de matrices, y se calcula la diferencia para obtener el tiempo total de ejecución. Este proceso se repite varias veces para cada tamaño de matriz y número de hilos o procesos, con el fin de obtener un promedio representativo del rendimiento de cada enfoque. 
