@@ -1,0 +1,15 @@
+\begin{table}[h]
+\centering
+\caption{Caracterización de la implementación secuencial de multiplicación de matrices}
+\label{tab:seq_profiling}
+\begin{tabular}{rrrrrrrrrr}
+\toprule
+$N$ & Time mean (ms) & Std (ms) & GFLOPS & IPC & Cache Miss \% & L1 Miss \% & dTLB Miss \% & Branch Miss \% & Peak Heap (MB) \\
+\midrule
+128 & 0.750 & 0.008 & 5.5924 & 5.6341 & 1.44 & 2.20 & 0.0000 & 0.0000 & 0.194 \\
+256 & 6.014 & 0.012 & 5.5794 & 3.4133 & 0.42 & 1.88 & 1.8833 & 0.0064 & 0.760 \\
+512 & 79.801 & 0.165 & 3.3638 & 2.8634 & 0.04 & 19.78 & 0.0035 & 0.1952 & 3.016 \\
+1024 & 702.284 & 5.780 & 3.0579 & 2.6175 & 1.81 & 29.74 & 0.0019 & 0.0956 & 12.027 \\
+\bottomrule
+\end{tabular}
+\end{table}

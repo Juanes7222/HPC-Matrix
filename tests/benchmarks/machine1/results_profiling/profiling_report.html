@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Profiling Report</title>
+<style>
+:root {
+  --bg: #f4f7fb;
+  --surface: #ffffff;
+  --surface-2: #f9fbfd;
+  --text: #1f2a36;
+  --muted: #5d6b79;
+  --border: #d8e1ea;
+  --primary: #1f3557;
+  --accent: #2e75b6;
+  --good: #2f6b1e;
+  --shadow: 0 10px 30px rgba(31,53,87,.08);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: "Inter", "Segoe UI", Arial, sans-serif;
+  color: var(--text);
+  background: linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
+  line-height: 1.55;
+}
+.container {
+  width: min(1380px, 94vw);
+  margin: 0 auto;
+  padding: 32px 0 48px;
+}
+.hero {
+  background: linear-gradient(135deg, #1f3557 0%, #2e75b6 100%);
+  color: white;
+  border-radius: 22px;
+  padding: 36px;
+  box-shadow: var(--shadow);
+  margin-bottom: 26px;
+}
+.hero h1 {
+  margin: 0 0 8px;
+  font-size: 2.1rem;
+}
+.hero p {
+  margin: 0;
+  color: rgba(255,255,255,.88);
+  max-width: 82ch;
+}
+.grid {
+  display: grid;
+  gap: 18px;
+}
+.kpis {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-bottom: 24px;
+}
+.two {
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  margin-bottom: 24px;
+}
+.charts {
+  grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 20px;
+}
+.kpi {
+  padding: 18px 20px;
+}
+.kpi-label {
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.kpi-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 4px;
+}
+.kpi-note {
+  color: var(--muted);
+  font-size: .94rem;
+}
+h2, h3 {
+  margin-top: 0;
+  color: var(--primary);
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .94rem;
+}
+th, td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+th {
+  background: var(--surface-2);
+  color: var(--primary);
+}
+.chart-card img {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  display: block;
+}
+code {
+  font-family: "JetBrains Mono", "Consolas", monospace;
+  white-space: pre-wrap;
+}
+.section {
+  margin-top: 26px;
+}
+.meta {
+  display: inline-flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.badge {
+  background: rgba(255,255,255,.14);
+  border: 1px solid rgba(255,255,255,.18);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: .9rem;
+}
+@media (max-width: 720px) {
+  .hero {
+    padding: 24px;
+  }
+  .hero h1 {
+    font-size: 1.6rem;
+  }
+}
+</style>
+</head>
+<body>
+  <div class="container">
+    <section class="hero">
+      <h1>Sequential Matrix Multiplication — Profiling Report</h1>
+      <p>Professional report generated from CSV metrics plus raw reports from gprof, perf stat, perf record, cachegrind, massif, and timing runs.</p>
+      <div class="meta">
+        <span class="badge">Cases: N=128, N=256, N=512, N=1024</span>
+        <span class="badge">Largest N: 1024</span>
+        <span class="badge">Peak heap @ largest N: 12.051 MB</span>
+        <span class="badge">Timing CV @ largest N: 0.82%</span>
+      </div>
+    </section>
+
+    <section class="grid kpis">
+      
+    <div class="card kpi">
+      <div class="kpi-label">Best GFLOPS</div>
+      <div class="kpi-value">N=128</div>
+      <div class="kpi-note">5.5924 GFLOPS</div>
+    </div>
+    
+    <div class="card kpi">
+      <div class="kpi-label">Best IPC</div>
+      <div class="kpi-value">N=128</div>
+      <div class="kpi-note">5.6341</div>
+    </div>
+    
+    <div class="card kpi">
+      <div class="kpi-label">Peak heap</div>
+      <div class="kpi-value">N=1024</div>
+      <div class="kpi-note">12.027 MB</div>
+    </div>
+    
+    <div class="card kpi">
+      <div class="kpi-label">N=1024</div>
+      <div class="kpi-value">Largest case</div>
+      <div class="kpi-note">time=702.284 ms | IPC=2.6175</div>
+    </div>
+    
+    </section>
+
+    <section class="section card">
+      <h2>Trend table</h2>
+      
+    <table>
+      <thead><tr><th>matrix_size</th><th>time_mean_ms</th><th>time_std_ms</th><th>gflops</th><th>ipc</th><th>cache_miss_pct</th><th>l1_miss_pct</th><th>dtlb_miss_pct</th><th>branch_miss_pct</th><th>peak_heap_mb</th></tr></thead>
+      <tbody><tr><td>N=128</td><td>0.750</td><td>0.008</td><td>5.5924</td><td>5.6341</td><td>1.44%</td><td>2.20%</td><td>0.00%</td><td>0.00%</td><td>0.194</td></tr><tr><td>N=256</td><td>6.014</td><td>0.012</td><td>5.5794</td><td>3.4133</td><td>0.42%</td><td>1.88%</td><td>1.88%</td><td>0.01%</td><td>0.760</td></tr><tr><td>N=512</td><td>79.801</td><td>0.165</td><td>3.3638</td><td>2.8634</td><td>0.04%</td><td>19.78%</td><td>0.00%</td><td>0.20%</td><td>3.016</td></tr><tr><td>N=1024</td><td>702.284</td><td>5.780</td><td>3.0579</td><td>2.6175</td><td>1.81%</td><td>29.74%</td><td>0.00%</td><td>0.10%</td><td>12.027</td></tr></tbody>
+    </table>
+    
+    </section>
+
+    <section class="section grid two">
+      
+    <div class="card">
+      <h3>gprof dominant functions</h3>
+      <table>
+        <thead><tr><th>Elemento</th><th>Share</th></tr></thead>
+        <tbody><tr><td>matrixMultiplyRange</td><td>100.00%</td></tr><tr><td>freeMatrix</td><td>0.00%</td></tr><tr><td>matrixGenerator</td><td>0.00%</td></tr><tr><td>fillMatrix</td><td>0.00%</td></tr><tr><td>elapsedMs</td><td>0.00%</td></tr><tr><td>extractN</td><td>0.00%</td></tr><tr><td>matrixMultiply</td><td>0.00%</td></tr><tr><td>printElapsed</td><td>0.00%</td></tr></tbody>
+      </table>
+    </div>
+    
+      
+    <div class="card">
+      <h3>perf record dominant symbols</h3>
+      <table>
+        <thead><tr><th>Elemento</th><th>Share</th></tr></thead>
+        <tbody><tr><td>matrixMultiplyRange</td><td>98.45%</td></tr><tr><td>random</td><td>0.71%</td></tr><tr><td>random_r</td><td>0.54%</td></tr><tr><td>0xffffffffbcdf4bec</td><td>0.15%</td></tr><tr><td>fillMatrix</td><td>0.13%</td></tr><tr><td>0xffffffffbba01280</td><td>0.02%</td></tr><tr><td>0xffffffffbbb0410b</td><td>0.00%</td></tr><tr><td>0x0000000000017b1f</td><td>0.00%</td></tr></tbody>
+      </table>
+    </div>
+    
+      
+    <div class="card">
+      <h3>cachegrind dominant functions</h3>
+      <table>
+        <thead><tr><th>Elemento</th><th>Share</th></tr></thead>
+        <tbody><tr><td>matrixMultiplyRange:/home/juanes/Documents/GitHub/HPC-Matrix/src/matrix_lib.c</td><td>98.50%</td></tr><tr><td>random_r:</td><td>0.70%</td></tr><tr><td>random:/usr/src/debug/glibc/glibc/stdlib/random.c</td><td>0.50%</td></tr><tr><td>fillMatrix:/home/juanes/Documents/GitHub/HPC-Matrix/src/matrix_lib.c</td><td>0.20%</td></tr><tr><td>rand:/usr/src/debug/glibc/glibc/stdlib/rand.c</td><td>0.10%</td></tr></tbody>
+      </table>
+    </div>
+    
+      
+        <div class="card">
+          <h3>Massif allocation breakdown</h3>
+          <table>
+            <thead><tr><th>Allocator</th><th>Share</th><th>Bytes</th></tr></thead>
+            <tbody><tr><td>matrixGenerator (matrix_lib.c:9)</td><td>99.58%</td><td>12,582,912 B</td></tr></tbody>
+          </table>
+        </div>
+        
+      
+        <div class="card">
+          <h3>Cachegrind hottest source lines</h3>
+          <table>
+            <thead><tr><th>Ir</th><th>Share</th><th>Source</th></tr></thead>
+            <tbody><tr><td>8,728,617,486</td><td>100.00%</td><td><code>PROGRAM TOTALS</code></td></tr><tr><td>8,614,111,445</td><td>98.70%</td><td><code>annotated: files known &amp; above threshold &amp; readable, line numbers known</code></td></tr><tr><td>8,599,378,965</td><td>98.50%</td><td><code>matrixMultiplyRange</code></td></tr><tr><td>5,368,713,216</td><td>61.50%</td><td><code>result[i][j] += matrix1[i][k] * matrix2[k][j];</code></td></tr><tr><td>3,221,225,472</td><td>36.90%</td><td><code>for (int k = 0; k &lt; n; k++)</code></td></tr><tr><td>109,004,776</td><td>1.20%</td><td><code>unannotated: files known &amp; above threshold &amp; unreadable</code></td></tr></tbody>
+          </table>
+        </div>
+        
+    </section>
+
+    <section class="section grid charts">
+      
+            <figure class="card chart-card">
+              <img src="charts_profiling/01_performance_summary.png" alt="01_performance_summary.png" loading="lazy">
+            </figure>
+            
+            <figure class="card chart-card">
+              <img src="charts_profiling/02_miss_rates.png" alt="02_miss_rates.png" loading="lazy">
+            </figure>
+            
+            <figure class="card chart-card">
+              <img src="charts_profiling/03_counter_trends.png" alt="03_counter_trends.png" loading="lazy">
+            </figure>
+            
+            <figure class="card chart-card">
+              <img src="charts_profiling/04_timing_variability.png" alt="04_timing_variability.png" loading="lazy">
+            </figure>
+            
+            <figure class="card chart-card">
+              <img src="charts_profiling/05_hotspots_largest_n.png" alt="05_hotspots_largest_n.png" loading="lazy">
+            </figure>
+            
+    </section>
+  </div>
+</body>
+</html>
