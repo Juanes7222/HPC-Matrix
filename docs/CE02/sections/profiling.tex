@@ -359,3 +359,18 @@ El tercer aspecto relevante es la estabilidad de los demás contadores. Los fall
 \subsubsection{Uso de memoria dinámica}
 
 El análisis con Valgrind Massif muestra que el consumo de heap escala de forma cuadrática con $N$, pasando de 0.194 MB para $N=128$ hasta 12.027 MB para $N=1024$. Este comportamiento coincide con la estimación teórica esperada: tres matrices de enteros de 32 bits con $N=1024$ requieren aproximadamente $1024 \times 1024 \times 4 \times 3 \approx 12$ MB. La ausencia de fragmentación o metadata excesiva confirma que el gestor de memoria del sistema no introduce sobrecarga anómala, y que cualquier limitante de rendimiento observada se origina en la ejecución del bucle de multiplicación y no en la gestión de memoria dinámica.
+
+\subsubsection{Distribución de accesos a memoria (perf mem / IBS)}
+
+La Figura~\ref{fig:prof_mem} presenta la distribución de los accesos de carga entre los niveles de la jerarquía de memoria, obtenida mediante \texttt{perf mem} con el mecanismo IBS (\textit{Instruction Based Sampling}) del procesador Ryzen 5 7600X. A diferencia de PEBS en arquitecturas Intel, IBS muestrea instrucciones en lugar de eventos de memoria directamente, lo que produce una fracción de muestras no clasificables reportadas como N/A, cuyo porcentaje se indica a la derecha de cada barra.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.9\textwidth]{images/profiling/06_mem_access_distribution.png}
+\caption{Distribución porcentual de accesos de carga clasificados por nivel de la jerarquía de memoria (perf mem / IBS). El porcentaje N/A indica muestras no clasificables por el mecanismo IBS de AMD Zen 4.}
+\label{fig:prof_mem}
+\end{figure}
+
+Para los tamaños pequeños ($N=128$ y $N=256$), la totalidad de los accesos clasificados se sirve desde L1, lo que refleja que las matrices caben activamente en caché durante la ejecución y el hardware logra satisfacer la mayoría de las cargas sin escalar a niveles superiores. A partir de $N=512$ el comportamiento cambia: el 81.3\% de los accesos clasificados provienen de L2, y L1 retiene apenas el 18.7\% restante. Esta transición indica que las matrices superan la capacidad efectiva de la caché L1 y el hardware debe recurrir al siguiente nivel de la jerarquía para servir la mayor parte de las cargas.
+
+Para $N=1024$, el patrón se consolida con un 80.0\% de accesos desde L2, un 11.3\% que aún se resuelve en L1 y un 8.7\% que requiere L3. La ausencia de accesos a RAM principal en los accesos clasificados, combinada con el 14.1\% de N/A, es consistente con el comportamiento de IBS en Zen 4: los accesos con latencias muy altas tienen mayor probabilidad de quedar sin clasificar al no completarse dentro de la ventana de muestreo. El resultado central es que el grueso de las cargas del algoritmo de multiplicación de matrices recae sobre L2 para matrices medianas y grandes, lo que triangula con la tasa de L1 miss del 29.74\% reportada por \texttt{perf stat} para $N=1024$. Los accesos que fallan en L1 son servidos mayoritariamente desde L2, lo que implica latencias de entre 5 y 12 ciclos adicionales por acceso. Dado que el bucle interno ejecuta $n^2$ accesos sobre la segunda matriz con un patrón de stride columnar, esta penalidad acumulada explica directamente la caída del IPC de 5.63 a 2.61 observada al escalar de $N=128$ a $N=1024$.

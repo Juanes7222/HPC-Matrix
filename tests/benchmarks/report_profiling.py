@@ -433,33 +433,58 @@ def parse_perf_record(path: str, top_k: int = 8) -> dict[str, Any]:
 def parse_perf_mem(path: str) -> dict[str, Any]:
     """
     Parses the output of `perf mem -t load report --stdio --sort=mem`.
-    Returns a dict mapping each memory source label to its overhead percentage.
+    Format (AMD IBS / Intel PEBS):
+        68.74%    439  L2 hit
+        14.11%   1434  N/A
+         9.72%    988  L1 hit
 
-    Expected input lines (after the header):
-        31.53%  LFB or LFB hit
-        29.70%  L1 or L1 hit
-        23.03%  L3 or L3 hit
-        12.91%  Local RAM or RAM hit
-         2.37%  L2 or L2 hit
+    Returns a dict with all sources and a filtered list excluding N/A entries.
     """
     text = read_text(path)
     if not text:
-        return {"available": False, "sources": []}
+        return {"available": False, "sources": [], "sources_classified": []}
 
     sources = []
     for line in text.splitlines():
-        # skip comment and empty lines
         line = line.strip()
         if not line or line.startswith("#"):
             continue
-        m = re.match(r"([\d.]+)%\s+(.+)", line)
+        # Three-column format: overhead%  samples  label
+        m = re.match(r"([\d.]+)%\s+(\d+)\s+(.+)", line)
         if not m:
-            continue
-        pct = float(m.group(1))
-        label = m.group(2).strip()
-        sources.append({"label": label, "pct": pct})
+            # Fallback: two-column format without sample count
+            m2 = re.match(r"([\d.]+)%\s+(.+)", line)
+            if not m2:
+                continue
+            pct   = float(m2.group(1))
+            label = m2.group(2).strip()
+            samples = 0
+        else:
+            pct     = float(m.group(1))
+            samples = int(m.group(2))
+            label   = m.group(3).strip()
 
-    return {"available": bool(sources), "sources": sources}
+        sources.append({"label": label, "pct": pct, "samples": samples})
+
+    # Classified: exclude N/A entries and re-normalize percentages
+    classified = [s for s in sources if s["label"].upper() != "N/A"]
+    total_classified = sum(s["pct"] for s in classified)
+    if total_classified > 0:
+        for s in classified:
+            s["pct_normalized"] = round(s["pct"] / total_classified * 100, 2)
+    else:
+        for s in classified:
+            s["pct_normalized"] = s["pct"]
+
+    na_entries = [s for s in sources if s["label"].upper() == "N/A"]
+    na_pct = sum(s["pct"] for s in na_entries)
+
+    return {
+        "available": bool(sources),
+        "sources": sources,                   
+        "sources_classified": classified,     
+        "na_pct": na_pct,                     
+    }
 
 
 def parse_cachegrind(path: str, top_k: int = 8, top_lines: int = 6) -> dict[str, Any]:
@@ -817,65 +842,89 @@ def chart_timing_variability(df: pd.DataFrame, raw: dict[int, dict[str, Any]]) -
     return save_figure(fig, "04_timing_variability.png")
 
 def chart_mem_access(raw: dict[int, dict[str, Any]]) -> str | None:
-    """
-    Stacked horizontal bar chart showing the memory access source distribution
-    (L1, L2, L3, LFB, RAM) for each matrix size measured by perf mem.
-    Only renders if at least one size has perf_mem data available.
-    """
     sizes = sorted(raw.keys())
-    data_by_label: dict[str, list[float]] = {}
+    # Canonical order for memory hierarchy levels
+    level_order = ["L1 hit", "L2 hit", "L3 hit", "Local RAM", "Remote RAM"]
+    color_map = {
+        "L1 hit":    "#2E75B6",
+        "L2 hit":    "#70AD47",
+        "L3 hit":    "#ED7D31",
+        "Local RAM": "#C00000",
+        "Remote RAM":"#7030A0",
+    }
+
+    # Collect all labels present across all sizes (excluding N/A)
+    all_labels: list[str] = []
     valid_sizes = []
+    size_na: dict[int, float] = {}
 
     for n in sizes:
-        sources = raw[n].get("perf_mem", {}).get("sources", [])
-        if not sources:
+        mem = raw[n].get("perf_mem", {})
+        if not mem.get("available"):
             continue
         valid_sizes.append(n)
-        for s in sources:
-            data_by_label.setdefault(s["label"], [0.0] * len(valid_sizes))
-            data_by_label[s["label"]][-1] = s["pct"]
+        size_na[n] = mem.get("na_pct", 0.0)
+        for s in mem.get("sources_classified", []):
+            if s["label"] not in all_labels:
+                all_labels.append(s["label"])
 
     if not valid_sizes:
         return None
 
-    for label in data_by_label:
-        while len(data_by_label[label]) < len(valid_sizes):
-            data_by_label[label].append(0.0)
+    # Sort labels by canonical order, then alphabetically for unknowns
+    def label_rank(lbl):
+        try:
+            return level_order.index(lbl)
+        except ValueError:
+            return len(level_order)
 
-    fig, ax = plt.subplots(figsize=(10, max(4, len(valid_sizes) * 1.4)))
+    all_labels = sorted(all_labels, key=label_rank)
 
-    colors = ["#2E75B6", "#70AD47", "#ED7D31", "#C00000", "#7030A0", "#1F9EB7"]
+    # Build matrix: rows=sizes, cols=labels
+    data: dict[str, list[float]] = {lbl: [] for lbl in all_labels}
+    for n in valid_sizes:
+        sources = {
+            s["label"]: s["pct_normalized"]
+            for s in raw[n].get("perf_mem", {}).get("sources_classified", [])
+        }
+        for lbl in all_labels:
+            data[lbl].append(sources.get(lbl, 0.0))
+
+    fig, ax = plt.subplots(figsize=(11, max(4, len(valid_sizes) * 1.5)))
     y_labels = [f"N={n}" for n in valid_sizes]
     bottoms = [0.0] * len(valid_sizes)
+    default_colors = ["#2E75B6", "#70AD47", "#ED7D31", "#C00000", "#7030A0", "#1F9EB7"]
 
-    for i, (label, values) in enumerate(data_by_label.items()):
-        bars = ax.barh(
-            y_labels,
-            values,
-            left=bottoms,
-            label=label,
-            color=colors[i % len(colors)],
-            height=0.55,
-        )
+    for i, lbl in enumerate(all_labels):
+        values = data[lbl]
+        color = color_map.get(lbl, default_colors[i % len(default_colors)])
+        bars = ax.barh(y_labels, values, left=bottoms, label=lbl,
+                       color=color, height=0.55)
         for bar, val in zip(bars, values):
-            if val >= 2.0:
+            if val >= 5.0:
                 ax.text(
                     bar.get_x() + bar.get_width() / 2,
                     bar.get_y() + bar.get_height() / 2,
                     f"{val:.1f}%",
-                    ha="center",
-                    va="center",
-                    fontsize=8,
-                    color="white",
-                    fontweight="bold",
+                    ha="center", va="center",
+                    fontsize=8.5, color="white", fontweight="bold",
                 )
         bottoms = [b + v for b, v in zip(bottoms, values)]
 
-    ax.set_xlabel("% de accesos muestreados")
-    ax.set_title("Distribución de accesos a memoria por nivel de jerarquía (perf mem)")
-    ax.legend(loc="lower right", fontsize=9)
-    ax.set_xlim(0, 105)
+    # Annotate N/A percentage per size
+    for i, n in enumerate(valid_sizes):
+        na = size_na.get(n, 0.0)
+        if na > 0:
+            ax.text(
+                102, i,
+                f"N/A: {na:.1f}%",
+                va="center", fontsize=8, color="#808080",
+            )
 
+    ax.set_xlabel("% de accesos clasificados (excluye N/A de IBS)")
+    ax.set_xlim(0, 118)
+    ax.set_title("Distribución de accesos a memoria por nivel de jerarquía (perf mem / IBS)")
+    ax.legend(loc="lower right", fontsize=9, title="Nivel")
     fig.tight_layout()
     return save_figure(fig, "06_mem_access_distribution.png")
 
