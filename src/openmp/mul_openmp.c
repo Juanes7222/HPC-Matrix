@@ -27,7 +27,7 @@ static int extractThreadCount(int argc, char *argv[]) {
  * improving load balance when n is small relative to the thread count.
  * schedule(static) distributes the collapsed iterations evenly at compile time,
  * which is optimal for the uniform workload of dense matrix multiplication.
- * unroll partial(4) instructs the OpenMP 5.1 runtime to unroll the innermost
+ * unroll partial(4) instructs the OpenMP 6.1 runtime to unroll the innermost
  * loop in groups of 4, reducing branch overhead and exposing more instruction-
  * level parallelism to the CPU pipeline.
  * default(none) forces explicit scoping of all variables, preventing silent
