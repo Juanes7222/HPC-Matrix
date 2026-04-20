@@ -1,20 +1,20 @@
-# started on Sat Apr 18 20:50:27 2026
+# started on Mon Apr 20 14:59:59 2026
 
 
  Performance counter stats for 'bin/mul_seq_perf 512' (5 runs):
 
-         383002900      cycles:u                                                                ( +-  0.23% )  (48.56%)
-        1096690245      instructions:u                                                          ( +-  0.12% )  (49.79%)
-         247109558      cache-references:u                                                      ( +-  0.24% )  (50.99%)
-            100710      cache-misses:u                                                          ( +-  5.85% )  (52.16%)
-         538283825      L1-dcache-loads:u                                                       ( +-  0.08% )  (52.40%)
-         106466937      L1-dcache-load-misses:u                                                 ( +-  0.21% )  (51.44%)
-   <not supported>      LLC-loads:u                                                           
-   <not supported>      LLC-load-misses:u                                                     
-          67828959      dTLB-loads:u                                                            ( +-  0.21% )  (50.21%)
-              2384      dTLB-load-misses:u                                                      ( +- 16.19% )  (49.01%)
-         140655712      branch-instructions:u                                                   ( +-  0.19% )  (47.84%)
-            274597      branch-misses:u                                                         ( +-  0.08% )  (47.60%)
+         388964477      cycles                                                                  ( +-  0.07% )  (50.14%)
+        1100489955      instructions                                                            ( +-  0.05% )  (51.29%)
+         246460882      cache-references                                                        ( +-  0.47% )  (52.20%)
+            224142      cache-misses                                                            ( +-  1.54% )  (50.99%)
+         541617985      L1-dcache-loads                                                         ( +-  0.08% )  (51.03%)
+         106946924      L1-dcache-load-misses                                                   ( +-  0.42% )  (49.86%)
+   <not supported>      LLC-loads                                                             
+   <not supported>      LLC-load-misses                                                       
+          68213933      dTLB-loads                                                              ( +-  0.47% )  (48.71%)
+              1893      dTLB-load-misses                                                        ( +-  6.65% )  (47.80%)
+         140798400      branch-instructions                                                     ( +-  0.19% )  (49.01%)
+            305134      branch-misses                                                           ( +-  0.91% )  (48.97%)
 
-       0.084382999 +- 0.000143215 seconds time elapsed  ( +-  0.17% )
+       0.084130006 +- 0.000062405 seconds time elapsed  ( +-  0.07% )
 

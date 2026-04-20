@@ -1,22 +1,22 @@
-# started on Sat Apr 18 20:50:24 2026
+# started on Mon Apr 20 14:59:51 2026
 
 
  Performance counter stats for 'bin/mul_seq_perf 128' (5 runs):
 
-           3409897      cycles:u                                                                ( +- 16.94% )  (74.11%)
-          19211590      instructions:u                                                          ( +-  0.00% )
-            356404      cache-references:u                                                      ( +-  9.31% )
-              5146      cache-misses:u                                                          ( +-  6.64% )
-           9235358      L1-dcache-loads:u                                                       ( +-  0.02% )
-            203356      L1-dcache-load-misses:u                                                 ( +-  2.56% )  (25.89%)
-   <not supported>      LLC-loads:u                                                           
-   <not supported>      LLC-load-misses:u                                                     
-     <not counted>      dTLB-loads:u                                                            (0.00%)
-     <not counted>      dTLB-load-misses:u                                                      (0.00%)
-     <not counted>      branch-instructions:u                                                   (0.00%)
-     <not counted>      branch-misses:u                                                         (0.00%)
+           5509592      cycles                                                                  ( +-  1.23% )  (75.31%)
+          19955669      instructions                                                            ( +-  0.03% )
+            378529      cache-references                                                        ( +-  6.87% )
+             19717      cache-misses                                                            ( +-  6.44% )
+           9524426      L1-dcache-loads                                                         ( +-  0.05% )
+            210774      L1-dcache-load-misses                                                   ( +-  2.34% )  (24.69%)
+   <not supported>      LLC-loads                                                             
+   <not supported>      LLC-load-misses                                                       
+     <not counted>      dTLB-loads                                                              (0.00%)
+     <not counted>      dTLB-load-misses                                                        (0.00%)
+     <not counted>      branch-instructions                                                     (0.00%)
+     <not counted>      branch-misses                                                           (0.00%)
 
-       0.001436657 +- 0.000009807 seconds time elapsed  ( +-  0.68% )
+       0.001440914 +- 0.000019053 seconds time elapsed  ( +-  1.32% )
 
 Some events weren't counted. Try disabling the NMI watchdog:
 	echo 0 > /proc/sys/kernel/nmi_watchdog

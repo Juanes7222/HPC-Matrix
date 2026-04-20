@@ -3,30 +3,50 @@
 #
 # Total Lost Samples: 0
 #
-# Samples: 21  of event 'cpu/cycles/Pu'
-# Event count (approx.): 18512225
+# Samples: 12  of event 'cpu/cycles/P'
+# Event count (approx.): 25646466
 #
-# Overhead  Command       Shared Object         Symbol                 
-# ........  ............  ....................  .......................
+# Overhead  Command       Shared Object      Symbol                        
+# ........  ............  .................  ..............................
 #
-    96.83%  mul_seq_perf  mul_seq_perf          [.] matrixMultiplyRange
+    83.86%  mul_seq_perf  mul_seq_perf       [.] matrixMultiplyRange
             |
             ---matrixMultiplyRange
                0x5555555dcc50
-               0xa7ac44bdfe059a0e
+               0x224220658ddd8318
 
-     3.06%  mul_seq_perf  libc.so.6             [.] random_r
+    15.11%  mul_seq_perf  libc.so.6          [.] random_r
             |
-            ---__random_r (inlined)
+            ---__random (inlined)
                rand
                fillMatrix
-               0x2dd3eea443ce8750
+               0x469c921133fb6cab
 
-     0.11%  mul_seq_perf  ld-linux-x86-64.so.2  [.] 0x000000000001692c
-     0.00%  mul_seq_perf  [unknown]             [k] 0xffffffffbba01280
-     0.00%  mul_seq_perf  ld-linux-x86-64.so.2  [.] 0x000000000001f7ab
+     0.58%  mul_seq_perf  [kernel.kallsyms]  [k] __mmap_region
+            |
+            ---kmem_cache_alloc_noprof
+               mas_preallocate
+               __mmap_region
+               do_mmap
+               vm_mmap_pgoff
+               elf_load
+               load_elf_binary
+               bprm_execve
+               do_execveat_common.isra.0
+               __x64_sys_execve
+               do_syscall_64
+               entry_SYSCALL_64_after_hwframe
+               0x7ffff68f468b
+
+     0.42%  mul_seq_perf  [kernel.kallsyms]  [k] vms_gather_munmap_vmas
+     0.01%  perf-exec     [kernel.kallsyms]  [k] amd_pmu_lbr_enable_all
+     0.01%  mul_seq_perf  [kernel.kallsyms]  [k] asm_sysvec_reschedule_ipi
+     0.00%  mul_seq_perf  [kernel.kallsyms]  [k] perf_event_update_userpage
+     0.00%  perf-exec     [kernel.kallsyms]  [k] local_clock_noinstr
+     0.00%  perf-exec     [kernel.kallsyms]  [k] native_write_msr
+     0.00%  perf-exec     [kernel.kallsyms]  [k] perf_event_update_userpage
 
 
 #
-# (Tip: Order by the overhead of source file name and line number: perf report -s srcline)
+# (Tip: When collecting LBR backtraces use --stitch-lbr to handle more than 32 deep entries: perf record --call-graph lbr ; perf report --stitch-lbr)
 #

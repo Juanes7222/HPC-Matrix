@@ -51,6 +51,12 @@ optimize_system() {
 
     echo 0 | sudo tee /proc/sys/kernel/randomize_va_space > /dev/null
     log_ok "ASLR: disabled"
+
+    local paranoid_orig
+    paranoid_orig=$(cat /proc/sys/kernel/perf_event_paranoid)
+    export PERF_PARANOID_ORIG="${paranoid_orig}"
+    echo -1 | sudo tee /proc/sys/kernel/perf_event_paranoid > /dev/null
+    log_ok "perf_event_paranoid: -1 (full hardware counter access)"
 }
 
 restore_system() {
@@ -70,6 +76,11 @@ restore_system() {
 
     echo 2 | sudo tee /proc/sys/kernel/randomize_va_space > /dev/null
     log_ok "ASLR: restored"
+
+    local restore_val="${PERF_PARANOID_ORIG:-2}"
+    echo "${restore_val}" | sudo tee /proc/sys/kernel/perf_event_paranoid > /dev/null
+    log_ok "perf_event_paranoid: restored to ${restore_val}"
+
     log_ok "System restored."
 }
 

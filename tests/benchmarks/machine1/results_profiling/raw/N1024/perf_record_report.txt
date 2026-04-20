@@ -3,42 +3,38 @@
 #
 # Total Lost Samples: 0
 #
-# Samples: 714  of event 'cpu/cycles/Pu'
-# Event count (approx.): 3299413275
+# Samples: 709  of event 'cpu/cycles/P'
+# Event count (approx.): 3312240384
 #
-# Overhead  Command       Shared Object         Symbol                 
-# ........  ............  ....................  .......................
+# Overhead  Command       Shared Object      Symbol                          
+# ........  ............  .................  ................................
 #
-    98.45%  mul_seq_perf  mul_seq_perf          [.] matrixMultiplyRange
+    98.28%  mul_seq_perf  mul_seq_perf       [.] matrixMultiplyRange
             |
             ---matrixMultiplyRange
                0x555555d68050
-               0x6ea1bef697d001c9
+               0x3515fd2fe64f2396
 
-     0.71%  mul_seq_perf  libc.so.6             [.] random
+     0.74%  mul_seq_perf  mul_seq_perf       [.] fillMatrix
             |
             ---__random (inlined)
-               |          
-                --0.66%--rand
-                          fillMatrix
-
-     0.54%  mul_seq_perf  libc.so.6             [.] random_r
-            |
-            ---__random_r (inlined)
                rand
                fillMatrix
+               0x6fb05bc73887e98c
 
-     0.15%  mul_seq_perf  [unknown]             [k] 0xffffffffbcdf4bec
-     0.13%  mul_seq_perf  mul_seq_perf          [.] fillMatrix
-     0.02%  mul_seq_perf  [unknown]             [k] 0xffffffffbba01280
-     0.00%  mul_seq_perf  [unknown]             [k] 0xffffffffbbb0410b
-     0.00%  mul_seq_perf  ld-linux-x86-64.so.2  [.] 0x0000000000017b1f
-     0.00%  mul_seq_perf  mul_seq_perf          [.] matrixGenerator
-     0.00%  mul_seq_perf  ld-linux-x86-64.so.2  [.] 0x000000000001f7ab
-     0.00%  mul_seq_perf  libc.so.6             [.] 0x00000000000a49e5
-     0.00%  mul_seq_perf  libc.so.6             [.] 0x00000000000a4eff
+     0.44%  mul_seq_perf  libc.so.6          [.] random
+     0.34%  mul_seq_perf  libc.so.6          [.] random_r
+     0.19%  mul_seq_perf  [kernel.kallsyms]  [k] __irqentry_text_end
+     0.00%  mul_seq_perf  [kernel.kallsyms]  [k] pte_offset_map_rw_nolock
+     0.00%  mul_seq_perf  [kernel.kallsyms]  [k] copy_mc_enhanced_fast_string
+     0.00%  mul_seq_perf  [kernel.kallsyms]  [k] restore_fpregs_from_fpstate
+     0.00%  perf-exec     [kernel.kallsyms]  [k] native_write_msr
+     0.00%  mul_seq_perf  [kernel.kallsyms]  [k] native_write_msr
+     0.00%  mul_seq_perf  [kernel.kallsyms]  [k] perf_event_update_userpage
+     0.00%  perf-exec     [kernel.kallsyms]  [k] native_sched_clock
+     0.00%  perf-exec     [kernel.kallsyms]  [k] perf_event_update_userpage
 
 
 #
-# (Tip: To adjust path to source files to local file system use perf report --prefix=... --prefix-strip=...)
+# (Tip: Show user configuration overrides: perf config --user --list)
 #

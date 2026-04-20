@@ -1,0 +1,19 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 30  of event 'ibs_op//'
+# Total weight : 30
+# Sort order   : mem
+#
+# Overhead       Samples  Memory access                          
+# ........  ............  .......................................
+#
+    53.33%            16  N/A                                    
+    46.67%            14  L1 hit                                 
+
+
+#
+# (Tip: To see list of saved events and attributes: perf evlist -v)
+#

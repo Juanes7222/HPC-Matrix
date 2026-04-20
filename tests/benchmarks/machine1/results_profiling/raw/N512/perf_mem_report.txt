@@ -1,0 +1,20 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 337  of event 'ibs_op//'
+# Total weight : 860
+# Sort order   : mem
+#
+# Overhead       Samples  Memory access                          
+# ........  ............  .......................................
+#
+    65.35%            39  L2 hit                                 
+    19.65%           169  N/A                                    
+    15.00%           129  L1 hit                                 
+
+
+#
+# (Tip: To change sampling frequency to 100 Hz: perf record -F 100)
+#

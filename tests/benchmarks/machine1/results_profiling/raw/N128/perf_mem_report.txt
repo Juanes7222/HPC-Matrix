@@ -1,0 +1,19 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 12  of event 'ibs_op//'
+# Total weight : 12
+# Sort order   : mem
+#
+# Overhead       Samples  Memory access                          
+# ........  ............  .......................................
+#
+    58.33%             7  N/A                                    
+    41.67%             5  L1 hit                                 
+
+
+#
+# (Tip: For tracepoint events, try: perf report -s trace_fields)
+#

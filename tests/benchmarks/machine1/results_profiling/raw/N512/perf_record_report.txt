@@ -3,32 +3,82 @@
 #
 # Total Lost Samples: 0
 #
-# Samples: 92  of event 'cpu/cycles/Pu'
-# Event count (approx.): 373359838
+# Samples: 73  of event 'cpu/cycles/P'
+# Event count (approx.): 374017348
 #
-# Overhead  Command       Shared Object         Symbol                 
-# ........  ............  ....................  .......................
+# Overhead  Command       Shared Object      Symbol                           
+# ........  ............  .................  .................................
 #
-    98.12%  mul_seq_perf  mul_seq_perf          [.] matrixMultiplyRange
+    94.82%  mul_seq_perf  mul_seq_perf       [.] matrixMultiplyRange
             |
             ---matrixMultiplyRange
                0x555555760850
-               0xd3739044def2725a
+               0x53b9b410127de33d
 
-     1.69%  mul_seq_perf  libc.so.6             [.] random_r
+     1.39%  mul_seq_perf  [kernel.kallsyms]  [k] do_anonymous_page
             |
-            ---__random_r (inlined)
-               rand
-               fillMatrix
-               0x7ffff9d17ba0c0c
+            ---pfn_pte
+               do_anonymous_page
+               __handle_mm_fault
+               handle_mm_fault
+               do_user_addr_fault
+               exc_page_fault
+               asm_exc_page_fault
+               0x7ffff7e55cd2
+               0x7ffff7e560bf
+               matrixGenerator
+               0x811
 
-     0.18%  mul_seq_perf  libc.so.6             [.] random
-     0.01%  mul_seq_perf  ld-linux-x86-64.so.2  [.] 0x0000000000016a14
-     0.00%  mul_seq_perf  [unknown]             [k] 0xffffffffbba01280
-     0.00%  mul_seq_perf  [unknown]             [k] 0xffffffffbba01630
-     0.00%  mul_seq_perf  ld-linux-x86-64.so.2  [.] 0x000000000001f7ab
+     1.25%  mul_seq_perf  [kernel.kallsyms]  [k] __sysvec_apic_timer_interrupt
+            |
+            ---read_tsc
+               ktime_get_update_offsets_now
+               hrtimer_interrupt
+               __sysvec_apic_timer_interrupt
+               sysvec_apic_timer_interrupt
+               asm_sysvec_apic_timer_interrupt
+               matrixMultiplyRange
+               0x555555760850
+               0x53b9b410127de33d
+
+     1.25%  mul_seq_perf  [kernel.kallsyms]  [k] perf_pmu_nop_void
+            |
+            ---perf_ibs_stop
+               perf_adjust_freq_unthr_events
+               perf_adjust_freq_unthr_context
+               perf_event_task_tick
+               sched_tick
+               update_process_times
+               tick_nohz_handler
+               __hrtimer_run_queues
+               hrtimer_interrupt
+               __sysvec_apic_timer_interrupt
+               sysvec_apic_timer_interrupt
+               asm_sysvec_apic_timer_interrupt
+               matrixMultiplyRange
+               0x555555760850
+               0x53b9b410127de33d
+
+     1.25%  mul_seq_perf  [kernel.kallsyms]  [k] sysvec_apic_timer_interrupt
+            |
+            ---__irq_exit_rcu
+               sysvec_apic_timer_interrupt
+               asm_sysvec_apic_timer_interrupt
+               matrixMultiplyRange
+               0x555555760850
+               0x53b9b410127de33d
+
+     0.04%  mul_seq_perf  [kernel.kallsyms]  [k] current_time
+     0.00%  mul_seq_perf  [kernel.kallsyms]  [k] __irqentry_text_end
+     0.00%  mul_seq_perf  [kernel.kallsyms]  [k] srso_alias_return_thunk
+     0.00%  perf-exec     [kernel.kallsyms]  [k] ctx_resched
+     0.00%  perf-exec     [kernel.kallsyms]  [k] native_write_msr
+     0.00%  mul_seq_perf  [kernel.kallsyms]  [k] calc_timer_values
+     0.00%  mul_seq_perf  [kernel.kallsyms]  [k] native_write_msr
+     0.00%  mul_seq_perf  [kernel.kallsyms]  [k] native_sched_clock
+     0.00%  mul_seq_perf  [kernel.kallsyms]  [k] perf_event_update_userpage
 
 
 #
-# (Tip: Show individual samples with: perf script)
+# (Tip: Use --symfs <dir> if your symbol files are in non-standard locations)
 #
