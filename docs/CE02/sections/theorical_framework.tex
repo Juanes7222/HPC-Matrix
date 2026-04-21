@@ -76,3 +76,137 @@ En contraste, la \textbf{Ley de Gustafson-Barsis} describe la \textit{escalabili
 \end{equation}
 
 Bajo la visión de Gustafson, a medida que la dimensión de las matrices crece de forma masiva, la cantidad de operaciones paralelas \(f\) (multiplicaciones flotantes) aumenta drásticamente, haciendo que la fracción secuencial inicial \((1 - f)\) pierda peso relativo. Esto mitiga el cuello de botella pronosticado por Amdahl, permitiendo alcanzar un \textit{Speedup} escalable y un uso altamente eficiente de los recursos al ajustar la carga de trabajo proporcionalmente al hardware.
+
+\subsection{OpenMP como Modelo de Programación Paralela}
+OpenMP (\textit{Open Multi-Processing}) es una interfaz de programación de aplicaciones
+(API) de estándar abierto para la programación paralela en sistemas de memoria compartida,
+desarrollada y mantenida por el consorcio OpenMP Architecture Review Board. El estándar
+define un conjunto de directivas de compilador, rutinas de biblioteca en tiempo de ejecución y
+variables de entorno que permiten al programador expresar paralelismo a nivel de bucles y
+tareas directamente sobre un código fuente C, C++ o Fortran existente, sin necesidad de
+reescribir la arquitectura del programa \parencite{Dagum1998OpenMP}. Esta característica lo
+convierte en el modelo predominante para la paralelización incremental en HPC sobre
+arquitecturas multinúcleo de memoria compartida.
+
+El modelo de ejecución de OpenMP se fundamenta en el paradigma de bifurcación y unión
+(\textit{fork-join}). El programa inicia su ejecución como un hilo único denominado hilo maestro,
+el cual ejecuta el código secuencial de forma ordinaria. Al encontrar una directiva de región
+paralela, el hilo maestro bifurca un equipo de hilos de trabajo que ejecutan el bloque de código
+encerrado de forma concurrente; al concluir dicha región, todos los hilos se sincronizan en una
+barrera implícita y se unen de nuevo al hilo maestro, que retoma la ejecución secuencial
+\parencite{Dagum1998OpenMP}. Este ciclo puede repetirse tantas veces como regiones paralelas
+declare el programa, lo que permite una adopción gradual y controlada del paralelismo sobre
+una base de código secuencial ya validada.
+
+La directiva central para la paralelización de bucles es \texttt{\#pragma omp parallel for},
+que distribuye automáticamente las iteraciones del bucle entre los hilos del equipo. El
+programador puede controlar la política de distribución de trabajo mediante la cláusula
+\texttt{schedule}, que admite los modos estático (\textit{static}), dinámico (\textit{dynamic})
+y guiado (\textit{guided}), cada uno con implicaciones distintas sobre el balance de carga y la
+sobrecarga de coordinación entre hilos \parencite{Chapman2008OpenMP}. Para la
+multiplicación de matrices, el modo estático resulta óptimo dado que las iteraciones presentan
+una carga de trabajo homogénea; esto permite al compilador asignar bloques contiguos de
+filas a cada hilo sin incurrir en la sobrecarga de planificación dinámica en tiempo de ejecución.
+
+El modelo de datos de OpenMP clasifica las variables del programa en dos categorías: compartidas
+(\textit{shared}), accesibles y modificables por todos los hilos del equipo simultáneamente, y
+privadas (\textit{private}), de las cuales cada hilo posee una copia independiente. El control
+explícito sobre este ámbito de visibilidad es un requisito de corrección del programa paralelo:
+las matrices de entrada y la matriz resultado deben declararse como compartidas para que todos
+los hilos lean y escriban sobre la misma estructura de datos, mientras que las variables de
+índice de los bucles internos deben ser privadas para evitar condiciones de carrera
+\parencite{Chapman2008OpenMP}. Dado que cada celda \(C_{ij}\) de la matriz resultado es
+calculada de forma completamente independiente por un único hilo, la multiplicación de
+matrices no requiere mecanismos de sincronización explícita como secciones críticas o
+operaciones atómicas, lo que elimina la principal fuente de sobrecarga en implementaciones
+OpenMP y permite un escalado cercano al teórico.
+
+\subsection{Perfilado de Código}
+El perfilado de código es la disciplina de la ingeniería de software que mide empíricamente el
+comportamiento dinámico de un programa en ejecución, con el objetivo de identificar con
+precisión cuáles funciones o regiones del código concentran el mayor consumo de tiempo de
+CPU o de recursos de memoria. En el contexto de HPC, esta técnica constituye el primer paso
+metodológico indispensable antes de cualquier intento de optimización o paralelización, ya que
+evita el anti-patrón de optimizar secciones del código que no representan cuellos de botella
+reales \parencite{Hager2010HPC}.
+
+Los perfiladores operan bajo dos paradigmas fundamentales. La primera estrategia es la
+\textit{instrumentación}, que consiste en insertar sondas de medición en puntos específicos del
+código fuente o del binario compilado; este enfoque proporciona datos exactos pero puede
+introducir una sobrecarga de ejecución significativa. La segunda estrategia es el
+\textit{muestreo estadístico}, en la cual la herramienta interrumpe la ejecución del proceso a
+intervalos regulares para registrar el estado del contador de programa; este método produce
+resultados estadísticamente representativos con una perturbación mínima sobre el tiempo de
+ejecución real \parencite{Grama2003Introduction}.
+
+Entre las herramientas más ampliamente adoptadas en entornos HPC sobre Linux se destacan
+dos: gprof (GNU Profiler) y perf. gprof opera combinando instrumentación en tiempo de
+compilación con muestreo temporal; analiza el binario para generar un reporte jerarquizado que
+muestra el tiempo acumulado por función y el grafo de llamadas, permitiendo identificar con
+granularidad de función dónde el programa concentra la mayor fracción de su tiempo de
+cómputo \parencite{GrahamEtAl1982Gprof}. perf, por su parte, es una herramienta de análisis
+integrada al núcleo Linux que accede directamente a los contadores de hardware del procesador
+mediante la interfaz de eventos de rendimiento del sistema operativo. Esto le permite recolectar
+métricas microarquitectónicas de bajo nivel, como la tasa de fallos de caché L1/L2/L3, el
+número de predicciones erróneas de salto, el IPC real y el número de instrucciones retiradas
+por ciclo; datos que resultan imposibles de obtener mediante perfilado por instrumentación de
+código fuente \parencite{Patterson2017Computer}.
+
+
+\subsection{Benchmarks de Rendimiento en HPC}
+Un benchmark de rendimiento es un procedimiento de medición estandarizado y reproducible que
+ejecuta una carga de trabajo representativa sobre un sistema con el propósito de obtener
+métricas comparables entre diferentes arquitecturas de hardware, configuraciones de software
+o implementaciones algorítmicas. Para que un benchmark posea validez científica, debe cumplir
+criterios de representatividad (que el problema resuelto sea relevante para las aplicaciones de
+interés), reproducibilidad (resultados consistentes bajo las mismas condiciones) y equidad (que
+no favorezca artificialmente ninguna arquitectura específica) \parencite{Dongarra1990BLAS}.
+
+En el dominio de HPC, el benchmark de referencia histórico y más influyente es LINPACK
+(\textit{Linear Algebra Package}), desarrollado por Jack Dongarra, y su sucesor de alta precisión
+HPL (\textit{High Performance LINPACK}). El HPL resuelve un sistema denso de ecuaciones
+lineales de la forma \(Ax = b\) de dimensión \(N \times N\) mediante la factorización LU con
+pivoteo parcial, reportando el rendimiento efectivo en GFLOPS (\(R_{\max}\)) y
+contrastándolo contra el rendimiento teórico máximo del hardware (\(R_{\text{peak}}\)). La
+eficiencia HPL se define como el cociente \(R_{\max} / R_{\text{peak}}\), y constituye el
+criterio de clasificación oficial de la lista TOP500, el ranking mundial de supercomputadoras
+\parencite{Dongarra1990BLAS}. Para el benchmarking de operaciones de álgebra lineal densa a
+nivel de núcleo computacional, el estándar utilizado en la literatura científica es DGEMM
+(\textit{Double-precision General Matrix Multiply}), que forma parte de la especificación BLAS
+Nivel 3 y mide directamente el rendimiento de la multiplicación de matrices en doble precisión,
+sirviendo como indicador canónico del rendimiento sostenido de punto flotante de un procesador
+\parencite{Patterson2017Computer}.
+
+
+\subsection{Geekbench como Herramienta de Benchmark Multiplataforma}
+Geekbench es una suite de benchmarks multiplataforma desarrollada por Primate Labs, diseñada
+para evaluar el rendimiento del procesador y la memoria de un sistema mediante cargas de
+trabajo sintéticas representativas de aplicaciones reales del mundo moderno. A diferencia de
+los benchmarks orientados exclusivamente al cómputo numérico como HPL o DGEMM, Geekbench
+adopta un enfoque holístico que cubre categorías como compresión de datos, procesamiento
+de imágenes, renderizado de documentos, compilación de código y cargas de trabajo de
+aprendizaje automático, con el objetivo de capturar el comportamiento del procesador frente a
+una gama amplia de patrones de acceso a memoria y tipos de instrucciones
+\parencite{GeekbenchInternals2024}.
+
+La versión actual, Geekbench 6, organiza la evaluación del procesador en dos secciones
+principales: núcleo único y múltiples núcleos. Cada sección se subdivide en cargas de trabajo
+de aritmética entera y aritmética de punto flotante. La puntuación compuesta final se calcula
+como la media aritmética ponderada de las puntuaciones de subsección, asignando un peso del
+65\% a las cargas enteras y el 35\% restante a las de punto flotante. Las puntuaciones están
+calibradas contra una línea base de 2,500 puntos correspondiente a un procesador Intel Core
+i7-12700, de modo que una puntuación doble representa exactamente el doble del rendimiento
+de referencia \parencite{GeekbenchInternals2024}. Geekbench 6 introduce además un modelo de
+paralelismo basado en tareas compartidas en sustitución del esquema de tareas independientes
+de versiones anteriores, lo cual modela con mayor fidelidad el comportamiento real de las
+aplicaciones modernas que distribuyen trabajo entre núcleos \parencite{GeekbenchInternals2024}.
+
+Desde una perspectiva microarquitectónica, el documento técnico oficial de Geekbench 6
+caracteriza cada carga de trabajo mediante métricas de bajo nivel que incluyen IPC, tasa de
+fallos de predicción de salto, tamaño del conjunto de trabajo activo y tasas de fallos de caché
+para los niveles L1D, L2 y L3. Por ejemplo, cargas de trabajo con patrones de acceso
+altamente irregulares como la carga de navegación basada en el algoritmo de Dijkstra registran
+tasas de fallo en L3 del 23.9\% en modo de núcleo único, mientras que cargas con alta
+localidad espacial como la compresión de datos exhiben tasas de fallo L3 del 12.8\%,
+evidenciando cómo el comportamiento de caché impacta directamente la puntuación final del
+benchmark \parencite{GeekbenchInternals2024}.
