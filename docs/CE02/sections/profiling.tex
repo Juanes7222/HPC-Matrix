@@ -164,6 +164,77 @@ son altamente predecibles.
 Un valor elevado sería indicativo de lógica condicional inesperada en el código
 o de fallos en la vectorización automática.
 
+\subsection{perf mem: perfilado de accesos a la jerarquía de memoria}
+
+\texttt{perf mem} es una extensión especializada de \texttt{perf} diseñada
+específicamente para analizar el comportamiento de los accesos a memoria,
+distinguiendo en qué nivel de la jerarquía fue satisfecho cada acceso
+(\textit{memory hierarchy attribution}).
+Mientras que \texttt{perf stat} reporta tasas de fallo de caché como totales
+globales y \texttt{perf record} localiza funciones costosas, \texttt{perf mem}
+responde una pregunta más precisa: \textit{``¿desde qué nivel de la jerarquía
+de memoria se están sirviendo los accesos de carga del programa?''}
+
+El script ejecuta la herramienta en dos fases:
+
+\begin{itemize}
+    \item \textbf{\texttt{perf mem record}}: captura muestras de eventos de
+        acceso a memoria mediante los registros PEBS (\textit{Precise Event
+        Based Sampling}) disponibles en procesadores Intel, o su equivalente
+        en AMD.
+        A diferencia del muestreo por ciclos de \texttt{perf record}, PEBS
+        captura el evento en el ciclo exacto en que ocurre la instrucción de
+        carga, lo que elimina el \textit{skid} (desplazamiento entre el evento
+        real y la muestra registrada) y permite atribuir con precisión cada
+        acceso a la instrucción que lo causó.
+    \item \textbf{\texttt{perf mem report --sort=mem}}: formatea el reporte
+        agrupando las muestras por tipo de acceso a memoria.
+        La opción \texttt{-t load} restringe el análisis a operaciones de
+        lectura, que son las dominantes en la multiplicación de matrices donde
+        los elementos de las matrices de entrada se leen repetidamente.
+        La opción \texttt{--sort=mem} agrupa los resultados por nivel de la
+        jerarquía de memoria que sirvió el acceso.
+\end{itemize}
+
+El reporte resultante distribuye el porcentaje de accesos de carga entre los
+siguientes niveles de la jerarquía:
+
+\begin{itemize}
+    \item \textbf{L1 hit}: acceso satisfecho por la caché de datos de nivel 1.
+        Representa el caso ideal: latencia de 4--5 ciclos.
+    \item \textbf{L2 hit}: acceso satisfecho por la caché de nivel 2.
+        Latencia típica de 12--15 ciclos.
+    \item \textbf{L3 hit} (LLC hit): acceso satisfecho por la caché de último
+        nivel.
+        Latencia típica de 30--40 ciclos según la arquitectura.
+    \item \textbf{LFB hit} (\textit{Line Fill Buffer}): acceso satisfecho por
+        el buffer de relleno de línea, una estructura interna del procesador que
+        almacena temporalmente líneas de caché en tránsito entre niveles.
+        Un porcentaje alto de LFB hits indica alta presión de ancho de banda
+        entre L1 y L2.
+    \item \textbf{RAM hit}: acceso que no fue satisfecho por ningún nivel de
+        caché y tuvo que recurrir a la memoria principal (DRAM).
+        Latencia de 100--300 ciclos, dependiendo del acceso NUMA y la
+        contención del bus de memoria.
+\end{itemize}
+
+La utilidad de \texttt{perf mem} en el contexto de la multiplicación de matrices
+reside en cuantificar la \textbf{distribución efectiva de latencias}: para
+$N = 128$ se espera que la mayoría de accesos sean L1 o L2 hits porque las
+matrices caben en los niveles superiores de caché, mientras que para $N = 1024$
+el porcentaje de RAM hits debe escalar significativamente, ya que las tres
+matrices ocupan aproximadamente $3 \times 1024^2 \times 4 \approx 12$\,MB,
+superando la capacidad típica de L2 (256\,KB--1\,MB) y presionando la LLC.
+Esta distribución complementa los miss rates de \texttt{perf stat} con
+información cualitativa sobre el \textit{mix} de latencias que experimenta el
+programa en cada tamaño de problema.
+
+La diferencia clave con \texttt{perf stat} es que \texttt{perf mem} proporciona
+una \textbf{vista por muestra y por nivel}, no solo contadores agregados.
+Mientras que \texttt{perf stat} indica cuántos fallos de L1 ocurrieron en total,
+\texttt{perf mem} indica qué fracción del tiempo el procesador estuvo esperando
+datos de L2, L3 o RAM, lo cual es directamente proporcional al impacto en el
+tiempo de ejecución.
 
 \subsection{perf record: muestreo basado en interrupciones de hardware}
 
@@ -289,6 +360,7 @@ La Tabla~\ref{tab:profiling_tools} resume la complementariedad entre herramienta
 Temporización    & Wall-clock estadístico    & ¿Cuánto tarda? ¿Es estable? & Sin resolución por función \\
 \texttt{gprof}   & Instrumentación compilador & ¿Qué función consume más CPU? & Binario modificado; resolución de 10\,ms \\
 \texttt{perf stat} & Contadores hardware (PMU) & ¿Qué eventos de hardware ocurren? & Solo totales globales \\
+\texttt{perf mem}    & Muestreo PEBS de cargas   & ¿Desde qué nivel de memoria se sirven los accesos? & Solo procesadores con soporte PEBS \\
 \texttt{perf record} & Muestreo por interrupciones & ¿Dónde está el CPU la mayor parte del tiempo? & Resolución de $\sim$1\,ms \\
 Valgrind Massif  & Intercepción de heap       & ¿Cuánta memoria dinámica se usa? & 5--30$\times$ overhead \\
 Valgrind Cachegrind & Simulación de caché     & ¿Qué instrucciones son más costosas? & Modelo aproximado; 20--100$\times$ overhead \\
