@@ -130,11 +130,21 @@ def build_all_reps(df: pd.DataFrame) -> AllReps:
         for size, sub in grp.groupby("matrix_size"):
             pairs = sorted(
                 [(int(str(r)), float(v))
-                 for r, v in zip(sub["repetition"], sub["wall_time_ms"])],
+                 for r, v in zip(sub["repetition"], sub["wall_time_ms"])
+                 if float(v) > 0.0],  # discard invalid measurements
                 key=lambda x: x[0],
             )
-            result[row][int(str(size))] = pairs
+            if pairs:
+                result[row][int(str(size))] = pairs
     return result
+
+def slowest_row(rows: list[MachineRow], avg_data: dict[MachineRow, dict[int, float]]) -> MachineRow:
+    """Returns the row with the highest mean execution time across all sizes."""
+    def mean_time(row: MachineRow) -> float:
+        times = avg_data.get(row, {})
+        return sum(times.values()) / len(times) if times else 0.0
+
+    return max(rows, key=mean_time)
 
 
 def avgs(reps: AllReps) -> dict[MachineRow, dict[int, float]]:
@@ -218,6 +228,59 @@ def chart_time_threads(thread_rows: list[MachineRow],
         fig.tight_layout()
     return save_figure(fig, CHARTS_DIR, fname)
 
+def chart_bar_comparison(thread_rows: list[MachineRow],
+                         avg_data: dict,
+                         sizes: list[int],
+                         machines: list[str],
+                         title: str,
+                         fname: str) -> str:
+    """Grouped bar chart comparing average time per machine for each matrix size."""
+    import numpy as np
+
+    n_sizes   = len(sizes)
+    n_machines = len(thread_rows)
+    bar_width  = 0.8 / n_machines
+    x_base     = np.arange(n_sizes)
+
+    with plt.rc_context(CHART_STYLE):
+        fig, ax = plt.subplots(figsize=(10, 5))
+
+        for mi, row in enumerate(thread_rows):
+            times  = avg_data.get(row, {})
+            values = [times.get(s, 0) for s in sizes]
+            offset = (mi - (n_machines - 1) / 2) * bar_width
+            color  = machine_color(row.machine, machines)
+
+            bars = ax.bar(
+                x_base + offset, values,
+                width=bar_width,
+                label=row.label,
+                color=color,
+                alpha=0.85,
+                edgecolor="white",
+                linewidth=0.5,
+            )
+
+            for bar, val in zip(bars, values):
+                if val > 0:
+                    ax.text(
+                        bar.get_x() + bar.get_width() / 2,
+                        bar.get_height() * 1.02,
+                        f"{val/1000:.1f}s" if val >= 1000 else f"{val:.0f}ms",
+                        ha="center", va="bottom",
+                        fontsize=7, color=color,
+                    )
+
+        ax.set_xticks(x_base)
+        ax.set_xticklabels([f"N={s:,}" for s in sizes], fontsize=9)
+        ax.set_yscale("log")
+        ax.set_title(title, fontsize=12, fontweight="bold", pad=8)
+        ax.set_xlabel("Dimensión N", fontsize=10)
+        ax.set_ylabel("Tiempo promedio (ms, escala log)", fontsize=10)
+        ax.legend(fontsize=8)
+        fig.tight_layout()
+
+    return save_figure(fig, CHARTS_DIR, fname)
 
 def chart_speedup_machines(thread_rows: list[MachineRow],
                            avg_data: dict, ref: MachineRow,
@@ -286,7 +349,7 @@ def write_thread_sheet(wb: Workbook, sheet_name: str, title: str,
                        rows: list[MachineRow], all_reps: AllReps,
                        ref: MachineRow, sizes: list[int],
                        machines: list[str],
-                       ct: str, cs: str) -> None:
+                       ct: str, cs: str, cb: str) -> None:
     """One sheet per thread count: compares all machines at that thread count."""
     ws = wb.create_sheet(sheet_name)
     avg_data = avgs(all_reps)
@@ -462,6 +525,7 @@ def write_thread_sheet(wb: Workbook, sheet_name: str, title: str,
     for anchor, path in [
         (f"A{chart_anchor}", ct),
         (f"L{chart_anchor}", cs),
+        (f"A{chart_anchor + 22}", cb),
     ]:
         if path and os.path.exists(path):
             img        = XLImage(path)
@@ -501,9 +565,11 @@ def write_scaling_sheet(wb: Workbook, machine: str,
         _hdr(ws.cell(cur_row, ci), f"N = {size:,}", bg=C["mid"], size=9)
     ws.row_dimensions[cur_row].height = 18
     cur_row += 1
+    
+    baseline_threads = thread_counts[0]
+    ref_row_baseline = MachineRow(machine=machine, threads=baseline_threads)
+    ref_avgs_baseline = avg_data.get(ref_row_baseline, {})
 
-    ref_row_1t = MachineRow(machine=machine, threads=thread_counts[0])
-    ref_avgs_1t = avg_data.get(ref_row_1t, {})
 
     for ti, t in enumerate(thread_counts):
         row = MachineRow(machine=machine, threads=t)
@@ -514,11 +580,11 @@ def write_scaling_sheet(wb: Workbook, machine: str,
              bg=C["light"], bold=True, align="center")
         for ci, size in enumerate(sizes, 2):
             avg     = times.get(size)
-            ref_avg = ref_avgs_1t.get(size)
+            ref_avg = ref_avgs_baseline.get(size)
             if avg is not None:
                 if ref_avg and avg > 0:
                     sp = ref_avg / avg
-                    val = f"{avg:,.1f} ms\n{sp:.2f}x"
+                    val = f"{avg:,.1f} ms\n{sp:.2f}x vs {baseline_threads}t"
                 else:
                     val = f"{avg:,.1f} ms"
                 cell = ws.cell(cur_row, ci)
@@ -582,14 +648,14 @@ def main() -> None:
     os.makedirs(CHARTS_DIR, exist_ok=True)
 
     # --- Charts per thread count (cross-machine comparison) ---
-    thread_charts: dict[int, tuple[str, str]] = {}
+    thread_charts: dict[int, tuple[str, str, str]] = {}
     for t in t_counts:
         t_rows = [MachineRow(machine=m, threads=t)
                   for m in machines
                   if MachineRow(machine=m, threads=t) in all_reps]
         if not t_rows:
             continue
-        ref = t_rows[0]
+        ref = slowest_row(t_rows, avg_data)
         ct = chart_time_threads(
             t_rows, avg_data, sizes, machines,
             title=f"Tiempo  |  {t} hilos  —  comparación entre máquinas",
@@ -600,7 +666,12 @@ def main() -> None:
             title=f"Speedup  |  {t} hilos  —  ref: {ref.machine}",
             fname=f"speedup_{t}t.png",
         )
-        thread_charts[t] = (ct, cs)
+        cb = chart_bar_comparison(
+            t_rows, avg_data, sizes, machines,
+            title=f"Comparación de tiempos  |  {t} hilos",
+            fname=f"bar_{t}t.png",
+        )
+        thread_charts[t] = (ct, cs, cb)
         print(f"  {os.path.basename(ct)}  |  {os.path.basename(cs)}")
 
     # --- Scaling charts per machine ---
@@ -628,7 +699,13 @@ def main() -> None:
         if not t_rows:
             continue
         ref = t_rows[0]
-        ct, cs = thread_charts.get(t, ("", ""))
+        ct, cs, cb = thread_charts.get(t, ("", "", ""))
+        cb = chart_bar_comparison(
+            t_rows, avg_data, sizes, machines,
+            title=f"Comparación de tiempos  |  {t} hilos",
+            fname=f"bar_{t}t.png",
+        )
+        thread_charts[t] = (ct, cs, cb)
         write_thread_sheet(
             wb,
             sheet_name=f"{t} hilos",
@@ -640,6 +717,7 @@ def main() -> None:
             machines=machines,
             ct=ct,
             cs=cs,
+            cb=cb,
         )
 
     # --- One sheet per machine (strong scaling) ---
