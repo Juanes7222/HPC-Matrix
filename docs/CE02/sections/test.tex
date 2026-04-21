@@ -5,4 +5,184 @@
 \section{Pruebas}
 \label{sec:Pruebas}
 
+En esta sección se presentan las pruebas realizadas para validar el funcionamiento del sistema desarrollado. Se describen los casos de prueba, los resultados obtenidos y las conclusiones derivadas de dichas pruebas. Se hace la comparación entre los resultados de las dos máquinas descritas anteriormente, con el fin de evaluar el rendimiento del sistema en diferentes entornos.
 
+
+
+%================================
+\subsection{Strong Scaling}
+\label{sec:Strong Scaling}
+
+\begin{figure}[H]
+   \centering
+   \includegraphics[width=1\textwidth]{images/omp/charts/scaling_machine1.png}
+   \caption{Resultados de Strong Scaling para la multiplicación de matrices utilizando OpenMP en la maquina 1.}
+   \label{fig:strong_scaling}
+\end{figure}
+
+\begin{figure}[H]
+   \centering
+   \includegraphics[width=1\textwidth]{images/omp/charts/scaling_machine2.png}
+   \caption{Resultados de Strong Scaling para la multiplicación de matrices utilizando OpenMP en la maquina 2.}
+   \label{fig:strong_scaling2}
+\end{figure}
+
+
+%================================
+\subsection{Pruebas con 2 hilos}
+\label{sec:Pruebas con 2 hilos}
+
+\begin{table}[H]
+   \centering
+   \includegraphics[width=1\textwidth]{images/omp/tables/time_machine1_2t.png}
+   \caption{Resultados de tiempo para la multiplicación de matrices utilizando OpenMP con 2 hilos en la maquina 1.}
+   \label{tab:time_machine1_2_threads}
+\end{table}
+
+\begin{table}[H]
+   \centering
+   \includegraphics[width=1\textwidth]{images/omp/tables/time_machine2_2t.png}
+   \caption{Resultados de tiempo para la multiplicación de matrices utilizando OpenMP con 2 hilos en la maquina 2.}
+   \label{tab:time_machine2_2_threads}
+\end{table}
+
+\begin{figure}[H]
+   \centering
+   \includegraphics[width=1\textwidth]{images/omp/charts/time_2t.png}
+   \caption{Resultados de tiempo para la multiplicación de matrices utilizando OpenMP con 2 hilos.}
+   \label{fig:time_2_threads}
+\end{figure}
+
+\begin{figure}[H]
+   \centering
+   \includegraphics[width=1\textwidth]{images/omp/charts/bar_2t.png}
+   \caption{Comparación de rendimiento para la multiplicación de matrices utilizando OpenMP con 2 hilos.}
+   \label{fig:bar_2_threads}
+\end{figure}
+
+\subsection{Pruebas con 4 hilos}
+\label{sec:Pruebas con 4 hilos}
+
+\begin{table}[H]
+   \centering
+   \includegraphics[width=1\textwidth]{images/omp/tables/time_machine1_4t.png}
+   \caption{Resultados de tiempo para la multiplicación de matrices utilizando OpenMP con 4 hilos en la maquina 1.}
+   \label{tab:time_machine1_4_threads}
+\end{table}
+
+\begin{table}[H]
+   \centering
+   \includegraphics[width=1\textwidth]{images/omp/tables/time_machine2_4t.png}
+   \caption{Resultados de tiempo para la multiplicación de matrices utilizando OpenMP con 4 hilos en la maquina 2.}
+   \label{tab:time_machine2_4_threads}
+\end{table}
+
+\begin{figure}[H]
+   \centering
+   \includegraphics[width=1\textwidth]{images/omp/charts/time_4t.png}
+   \caption{Resultados de tiempo para la multiplicación de matrices utilizando OpenMP con 4 hilos.}
+   \label{fig:time_4_threads}
+\end{figure}
+
+\begin{figure}[H]
+   \centering
+   \includegraphics[width=1\textwidth]{images/omp/charts/bar_4t.png}
+   \caption{Comparación de rendimiento para la multiplicación de matrices utilizando OpenMP con 4 hilos.}
+   \label{fig:bar_4_threads}
+\end{figure}
+
+
+%================================
+\subsection{Pruebas con 6 hilos}
+\label{sec:Pruebas con 6 hilos}
+
+\begin{table}[H]
+   \centering
+   \includegraphics[width=1\textwidth]{images/omp/tables/time_machine1_6t.png}
+   \caption{Resultados de tiempo para la multiplicación de matrices utilizando OpenMP con 6 hilos en la maquina 1.}
+   \label{tab:time_machine1_6_threads}
+\end{table}
+
+\begin{table}[H]
+   \centering
+   \includegraphics[width=1\textwidth]{images/omp/tables/time_machine2_6t.png}
+   \caption{Resultados de tiempo para la multiplicación de matrices utilizando OpenMP con 6 hilos en la maquina 2.}
+   \label{tab:time_machine2_6_threads}
+\end{table}
+
+\begin{figure}[H]
+   \centering
+   \includegraphics[width=1\textwidth]{images/omp/charts/time_6t.png}
+   \caption{Resultados de tiempo para la multiplicación de matrices utilizando OpenMP con 6 hilos.}
+   \label{fig:time_6_threads}
+\end{figure}
+
+\begin{figure}[H]
+   \centering
+   \includegraphics[width=1\textwidth]{images/omp/charts/bar_6t.png}
+   \caption{Comparación de rendimiento para la multiplicación de matrices utilizando OpenMP con 6 hilos.}
+   \label{fig:bar_6_threads}
+\end{figure}
+
+\subsection{Pruebas con 8 hilos}
+\label{sec:Pruebas con 8 hilos}
+
+\begin{table}[H]
+   \centering
+   \includegraphics[width=1\textwidth]{images/omp/tables/time_machine1_8t.png}
+   \caption{Resultados de tiempo para la multiplicación de matrices utilizando OpenMP con 8 hilos en la maquina 1.}
+   \label{tab:time_machine1_8_threads}
+\end{table}
+
+\begin{table}[H]
+   \centering
+   \includegraphics[width=1\textwidth]{images/omp/tables/time_machine2_8t.png}
+   \caption{Resultados de tiempo para la multiplicación de matrices utilizando OpenMP con 8 hilos en la maquina 2.}
+   \label{tab:time_machine2_8_threads}
+\end{table}
+
+\begin{figure}[H]
+   \centering
+   \includegraphics[width=1\textwidth]{images/omp/charts/time_8t.png}
+   \caption{Resultados de tiempo para la multiplicación de matrices utilizando OpenMP con 8 hilos.}
+   \label{fig:time_8_threads}
+\end{figure}
+
+\begin{figure}[H]
+   \centering
+   \includegraphics[width=1\textwidth]{images/omp/charts/bar_8t.png}
+   \caption{Comparación de rendimiento para la multiplicación de matrices utilizando OpenMP con 8 hilos.}
+   \label{fig:bar_8_threads}
+\end{figure}
+
+\subsection{Pruebas con 12 hilos}
+\label{sec:Pruebas con 12 hilos}
+
+\begin{table}[H]
+   \centering
+   \includegraphics[width=1\textwidth]{images/omp/tables/time_machine1_12t.png}
+   \caption{Resultados de tiempo para la multiplicación de matrices utilizando OpenMP con 12 hilos en la maquina 1.}
+   \label{tab:time_machine1_12_threads}
+\end{table}
+
+\begin{table}[H]
+   \centering
+   \includegraphics[width=1\textwidth]{images/omp/tables/time_machine2_12t.png}
+   \caption{Resultados de tiempo para la multiplicación de matrices utilizando OpenMP con 12 hilos en la maquina 2.}
+   \label{tab:time_machine2_12_threads}
+\end{table}
+
+
+\begin{figure}[H]
+   \centering
+   \includegraphics[width=1\textwidth]{images/omp/charts/time_12t.png}
+   \caption{Resultados de tiempo para la multiplicación de matrices utilizando OpenMP con 12 hilos.}
+   \label{fig:time_12_threads}
+\end{figure}
+
+\begin{figure}[H]
+   \centering
+   \includegraphics[width=1\textwidth]{images/omp/charts/bar_12t.png}
+   \caption{Comparación de rendimiento para la multiplicación de matrices utilizando OpenMP con 12 hilos.}
+   \label{fig:bar_12_threads}
+\end{figure}
