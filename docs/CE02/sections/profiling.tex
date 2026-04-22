@@ -53,7 +53,7 @@ comparar directamente distintas implementaciones y arquitecturas.
 \subsection{gprof: perfilado por instrumentación del compilador}
 
 \texttt{gprof} es una herramienta de perfilado basada en instrumentación generada
-en tiempo de compilación~\cite{graham1982gprof}.
+en tiempo de compilación~\parencite{graham1982gprof}.
 El binario \texttt{mul\_seq\_gprof} se compila con las flags \texttt{-pg} y
 \texttt{-fno-inline}:
 
@@ -305,7 +305,7 @@ overhead de fragmentación interna del asignador de memoria del sistema.
 Cachegrind es una herramienta del framework Valgrind que, a diferencia de
 \texttt{perf stat}, no utiliza contadores de hardware reales sino que
 \textbf{simula} la jerarquía de caché del procesador mediante instrumentación
-a nivel de instrucción~\cite{nethercote2007valgrind}.
+a nivel de instrucción~\parencite{nethercote2007valgrind}.
 Cada operación de carga y almacenamiento del programa es interceptada y procesada
 por un modelo de caché configurable que reproduce la estructura de caché L1, L2
 y LLC del sistema.
@@ -373,7 +373,7 @@ Valgrind Cachegrind & Simulación de caché     & ¿Qué instrucciones son más 
 \subsection{Resultados del perfilado}
 \label{sec:Resultados del perfilado}
 
-La Tabla~\ref{tab:seq_profiling} consolida los resultados de las seis técnicas de perfilado aplicadas a la multiplicación de matrices clásica (bucle canónico $i$-$j$-$k$) para tamaños crecientes, $N \in \{128, 256, 512, 1024\}$. La triangulación de herramientas permite identificar con precisión el origen de las limitaciones de rendimiento observadas.
+La Tabla~\ref{tab:seq_profiling} consolida los resultados de las seis técnicas de perfilado aplicadas a la multiplicación de matrices clásica para tamaños crecientes, $N \in \{128, 256, 512, 1024\}$. La triangulación de herramientas permite identificar con precisión el origen de las limitaciones de rendimiento observadas.
 
 \begin{table}[h]
 \centering
@@ -395,7 +395,7 @@ $N$ & Time mean (ms) & Std (ms) & GFLOPS & IPC & Cache Miss \% & L1 Miss \% & dT
 
 \subsubsection{Localización del hotspot}
 
-Las herramientas de perfilado coinciden en señalar la función de multiplicación como la única fuente relevante de cómputo. El reporte de gprof le atribuye el 100\% del tiempo de ejecución, mientras que perf record indica que para $N=1024$ esta función concentra el 98.45\% de la actividad en el procesador, dejando apenas un 1.5\% restante a rutinas del sistema como la inicialización y el llenado de matrices. Valgrind Cachegrind refuerza este resultado al asociarle el 98.5\% de las referencias de instrucción contabilizadas. El diagnóstico es directo: todo el peso computacional recae sobre los tres bucles anidados del algoritmo, y cualquier optimización debe dirigirse exclusivamente a esa región.
+Las herramientas de perfilado coinciden en señalar la función de multiplicación como la única fuente relevante de cómputo. El reporte de gprof le atribuye el 100\% del tiempo de ejecución, mientras que perf record indica que para $N=1024$ esta función concentra el 98.45\% de la actividad en el procesador, dejando apenas un 1.5\% restante a rutinas del sistema como la inicialización y el llenado de matrices. Valgrind Cachegrind refuerza este resultado al asociarle el 98.5\% de las referencias de instrucción contabilizadas. Con esto podemos decir que todo el peso computacional recae sobre los tres bucles anidados del algoritmo, y cualquier optimización debe dirigirse exclusivamente a esa región.
 
 \begin{figure}[h]
 \centering
@@ -406,7 +406,7 @@ Las herramientas de perfilado coinciden en señalar la función de multiplicaci�
 
 \subsubsection{Limitaciones de hardware}
 
-Las métricas recopiladas con perf stat muestran una caída sostenida del rendimiento a medida que crece el tamaño de la matriz, pasando de 5.59 GFLOPS para $N=128$ hasta 3.05 GFLOPS para $N=1024$.
+Las métricas recopiladas con perf stat muestran una caída sostenida del rendimiento a medida que crece el tamaño de la matriz, pasando de 5.53 GFLOPS para $N=128$ hasta 3.05 GFLOPS para $N=1024$.
 
 \begin{figure}[h]
 \centering
@@ -415,7 +415,7 @@ Las métricas recopiladas con perf stat muestran una caída sostenida del rendim
 \label{fig:prof_perf}
 \end{figure}
 
-Esta degradación tiene tres causas que se pudieron indentificar. La primera es la presión sobre la caché de nivel 1: cuando las matrices son pequeñas ($N=128$), los datos residen prácticamente en caché y la tasa de fallos en L1 es de apenas 2.20\%. Al escalar a $N=1024$, esa tasa asciende a 29.74\%, lo que refleja un patrón de acceso desfavorable. En C, los arreglos bidimensionales se almacenan en orden de filas, de modo que recorrer la segunda matriz por columnas, como exige el producto interior, genera accesos no contiguos en memoria y produce líneas de caché ineficientes.
+Esta degradación tiene tres causas que se pudieron indentificar. La primera es la presión sobre la caché de nivel 1: cuando las matrices son pequeñas ($N=128$), los datos residen prácticamente en caché y la tasa de fallos en L1 es de apenas 2.21\%. Al escalar a $N=1024$, esa tasa asciende a 29.68\%, lo que refleja un patrón de acceso desfavorable. En C, los arreglos bidimensionales se almacenan en orden de filas, de modo que recorrer la segunda matriz por columnas, como exige el producto interior, genera accesos no contiguos en memoria y produce líneas de caché ineficientes.
 
 La segunda causa es la degradación del IPC. Para $N=128$, el procesador logra un IPC de 5.63, aprovechando el paralelismo a nivel de instrucción disponible cuando los datos están en caché. A medida que los fallos de L1 obligan a recurrir a niveles más lentos de la jerarquía de memoria, el pipeline queda en espera y el IPC cae a 2.61 para $N=1024$.
 
