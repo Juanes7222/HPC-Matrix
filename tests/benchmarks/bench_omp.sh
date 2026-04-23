@@ -87,7 +87,10 @@ fi
 NORMAL_FLAGS="-Wall"
 BEST_FLAGS="-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer"
 CSV_HEADER="machine,impl,flags,threads,matrix_size,repetition,wall_time_ms"
-BIN_OMP="${BIN_DIR}/mul_omp"
+BIN_OMP="${BIN_DIR}/mul_omp_opt"
+if [[ "${BEST_CONFIG}" != "true" ]]; then
+    BIN_OMP="${BIN_DIR}/mul_omp_noopt"
+fi
 SRC_OMP="src/openmp/mul_openmp.c"
 
 compile_omp() {
