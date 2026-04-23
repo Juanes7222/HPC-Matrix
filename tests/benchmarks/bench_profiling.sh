@@ -65,7 +65,7 @@ TIMING_RUNS=10
 
 # Number of repetitions passed to perf stat -r.  perf averages the hardware
 # counters across runs and reports the coefficient of variation.
-PERF_STAT_REPEATS=5
+PERF_STAT_REPEATS=1
 
 BIN_PERF="${BIN_DIR}/mul_seq_perf"
 BIN_GPROF="${BIN_DIR}/mul_seq_gprof"

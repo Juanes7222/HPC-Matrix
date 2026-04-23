@@ -12,6 +12,13 @@ Table layout (pivoted for readability):
 Speedup table below (one row per impl):
   Impl | N=400 avg | sp | N=800 avg | sp | ... | Avg Speedup
 
+CSV naming convention:
+  data_compiler.csv, data_cache.csv, data_mixed.csv  -- existing impls
+  data_omp.csv                                        -- OpenMP impl
+    Required columns: impl, threads, flags, matrix_size, repetition, wall_time_ms
+    impl column value must be "omp" for OpenMP rows.
+    OpenMP rows are compiled without -march=native, so tag resolves to "noopt".
+
 Usage:
     python report.py [results_dir/] [csv_src_dir/]
     Defaults: results_dir = results_final/  csv_src = same as results_dir
@@ -65,14 +72,26 @@ COLORS: dict[str, str] = {
     "threads_12t/best":  "#7030A0",
     "conc/noopt":        "#843C0C",
     "conc/best":         "#C00000",
+    # OpenMP without compiler opt (warm-to-red scale by thread count)
+    "omp_2t/noopt":      "#FFC7CE",
+    "omp_4t/noopt":      "#FF8C94",
+    "omp_6t/noopt":      "#E84855",
+    "omp_8t/noopt":      "#C0392B",
+    "omp_12t/noopt":     "#7B0D1E",
+    # OpenMP with compiler opt (darker/saturated versions of the same scale)
+    "omp_2t/best":       "#FF85A1",
+    "omp_4t/best":       "#FF4060",
+    "omp_6t/best":       "#C0152A",
+    "omp_8t/best":       "#8B0000",
+    "omp_12t/best":      "#4A0010",
 }
 
 # Extra colors not in report_utils
 C_EXTRA: dict[str, str] = {
-    "summary_bg":  "EBF3FB",   # light blue for Avg/Std/CV rows
+    "summary_bg":  "EBF3FB",
     "summary_fg":  "1F4E79",
-    "impl_header": "1F4E79",   # per-impl block header bg
-    "sep":         "D9E1F2",   # subtle separator row
+    "impl_header": "1F4E79",
+    "sep":         "D9E1F2",
 }
 
 # ---------------------------------------------------------------------------
@@ -94,6 +113,8 @@ class Row:
         opt = _OPT_SUFFIX if self.tag == "best" else _NOOPT_SUFFIX
         if self.impl == "threads":
             return f"Concurrencia {self.threads} hilos {opt}"
+        if self.impl == "omp":
+            return f"OpenMP {self.threads} hilos {opt}"
         if self.impl == "seq_std":
             return f"Secuencial naive {opt}"
         if self.impl == "seq_cache":
@@ -106,6 +127,8 @@ class Row:
     def short_label(self) -> str:
         if self.impl == "threads":
             return f"threads_{self.threads}t/{self.tag}"
+        if self.impl == "omp":
+            return f"omp_{self.threads}t/{self.tag}"
         return f"{self.impl}/{self.tag}"
 
     @property
@@ -123,6 +146,21 @@ AllReps = dict[Row, dict[int, list[tuple[int, float]]]]
 # Loading
 # ---------------------------------------------------------------------------
 
+# Maps raw impl names found in CSVs to the canonical names used internally.
+# Add entries here whenever a CSV uses a different naming convention.
+_IMPL_ALIASES: dict[str, str] = {
+    "mul_omp":     "omp",
+    "mul_threads": "threads",
+    "mul_seq_std": "seq_std",
+    "mul_seq_cache": "seq_cache",
+    "mul_conc":    "conc",
+}
+
+
+def _normalize_impl(raw: str) -> str:
+    return _IMPL_ALIASES.get(raw, raw)
+
+
 def load_csv(name: str) -> pd.DataFrame | None:
     for base in [SRC_DIR, RESULTS_DIR]:
         path = os.path.join(base, f"data_{name}.csv")
@@ -130,7 +168,7 @@ def load_csv(name: str) -> pd.DataFrame | None:
             df = pd.read_csv(path)
             df.columns         = [c.strip().lower() for c in df.columns]
             df["flags"]        = df["flags"].str.strip('"')
-            df["impl"]         = df["impl"].str.strip()
+            df["impl"]         = df["impl"].str.strip().apply(_normalize_impl)
             df["threads"]      = df["threads"].astype(int)
             df["matrix_size"]  = df["matrix_size"].astype(int)
             df["repetition"]   = df["repetition"].astype(int)
@@ -166,23 +204,23 @@ def avgs(reps: AllReps) -> dict[Row, dict[int, float]]:
     }
 
 
-def best_thread(avg_data: dict[Row, dict], sizes: list[int],
-                tag: str, ref: Row) -> Row | None:
+def top_n_rows(avg_data: dict[Row, dict], sizes: list[int],
+               impl: str, tag: str, ref: Row, n: int) -> list[Row]:
+    """Returns the n rows for the given impl/tag ranked by average speedup over ref."""
     ref_avgs = avg_data.get(ref, {})
     if not ref_avgs:
-        return None
-    best_row, best_sp = None, 0.0
+        return []
+    ranked: list[tuple[float, Row]] = []
     for row, times in avg_data.items():
-        if row.impl != "threads" or row.tag != tag:
+        if row.impl != impl or row.tag != tag:
             continue
         sp_vals = [ref_avgs[s] / times[s]
                    for s in sizes
                    if s in times and s in ref_avgs and times[s] > 0]
         if sp_vals:
-            sp = sum(sp_vals) / len(sp_vals)
-            if sp > best_sp:
-                best_sp, best_row = sp, row
-    return best_row
+            ranked.append((sum(sp_vals) / len(sp_vals), row))
+    ranked.sort(key=lambda x: x[0], reverse=True)
+    return [row for _, row in ranked[:n]]
 
 # ---------------------------------------------------------------------------
 # Low-level cell helpers
@@ -276,6 +314,93 @@ def chart_speedup(rows: list[Row], avg_data: dict, ref: Row,
         fig.tight_layout()
     return save_figure(fig, CHARTS_DIR, fname)
 
+
+def chart_efficiency(rows: list[Row], avg_data: dict, ref: Row,
+                     sizes: list, title: str, fname: str) -> str:
+    """
+    Plots parallel efficiency = speedup / n_threads for each parallel row.
+    Ideal efficiency is 1.0 (perfect linear scaling). Values below 1 indicate
+    synchronization or overhead losses; above 1 indicates super-linear speedup
+    (usually due to cache effects at smaller per-thread working sets).
+    Only rows with impl in ("threads", "omp") and threads > 0 are included.
+    """
+    ref_avgs = avg_data.get(ref, {})
+    series: list[Series] = []
+    for r in rows:
+        if r.impl not in ("threads", "omp") or r.threads <= 0:
+            continue
+        times = avg_data.get(r, {})
+        eff_data = {
+            s: (ref_avgs[s] / times[s]) / r.threads
+            for s in sizes
+            if s in times and s in ref_avgs and times[s] > 0
+        }
+        if eff_data:
+            series.append(Series(label=r.short_label, data=eff_data,
+                                  color=r.color))
+    with plt.rc_context(CHART_STYLE):
+        fig, ax = plt.subplots(figsize=(9, 5))
+        ax.axhline(1.0, color="#AAAAAA", lw=1.2, ls="--",
+                   label="ideal (eficiencia = 1)")
+        plot_lines(ax, series, log_scale=False)
+        ax.set_title(title, fontsize=12, fontweight="bold", pad=8)
+        ax.set_xlabel("Dimensión N", fontsize=10)
+        ax.set_ylabel("Eficiencia  (speedup / hilos)", fontsize=10)
+        ax.legend(fontsize=8, loc="upper left")
+        fig.tight_layout()
+    return save_figure(fig, CHARTS_DIR, fname)
+
+
+def chart_speedup_vs_threads(rows: list[Row], avg_data: dict, ref: Row,
+                              target_size: int, title: str,
+                              fname: str) -> str:
+    """
+    Plots speedup as a function of thread count for a fixed problem size.
+    One data point per (impl, thread_count) pair at target_size.
+    Useful for comparing how OpenMP and pthreads scale as threads increase.
+    Draws the ideal linear speedup line as reference.
+    """
+    ref_avgs = avg_data.get(ref, {})
+    ref_t    = ref_avgs.get(target_size)
+    if ref_t is None:
+        return ""
+
+    # Group by impl to draw one line per parallelism model.
+    by_impl: dict[str, list[tuple[int, float]]] = {}
+    impl_colors: dict[str, str] = {}
+    for r in rows:
+        if r.impl not in ("threads", "omp") or r.threads <= 0:
+            continue
+        times = avg_data.get(r, {})
+        t = times.get(target_size)
+        if t and t > 0:
+            by_impl.setdefault(r.impl, []).append((r.threads, ref_t / t))
+            impl_colors[r.impl] = r.color
+
+    line_colors = {"threads": "#4472C4", "omp": "#C0392B"}
+    max_t = max(
+        (tc for pts in by_impl.values() for tc, _ in pts),
+        default=12,
+    )
+
+    with plt.rc_context(CHART_STYLE):
+        fig, ax = plt.subplots(figsize=(9, 5))
+        ax.plot([1, max_t], [1, max_t], color="#AAAAAA", lw=1.2, ls="--",
+                label="speedup ideal")
+        for impl, pts in sorted(by_impl.items()):
+            pts_sorted = sorted(pts)
+            xs = [p[0] for p in pts_sorted]
+            ys = [p[1] for p in pts_sorted]
+            ax.plot(xs, ys, marker="o", lw=1.8,
+                    color=line_colors.get(impl, "#888888"),
+                    label=impl)
+        ax.set_title(title, fontsize=12, fontweight="bold", pad=8)
+        ax.set_xlabel("Número de hilos", fontsize=10)
+        ax.set_ylabel("Speedup", fontsize=10)
+        ax.legend(fontsize=8, loc="upper left")
+        fig.tight_layout()
+    return save_figure(fig, CHARTS_DIR, fname)
+
 # ---------------------------------------------------------------------------
 # Sheet writer
 # ---------------------------------------------------------------------------
@@ -291,28 +416,19 @@ def write_sheet(wb: Workbook, name: str, title: str,
         default=10,
     )
 
-    # Raw table: 1 + n_sizes + 1 cols  (Rep | N=400..N=6400 | blank spacer)
     N_COLS = 1 + len(sizes)
 
-    # -----------------------------------------------------------------------
-    # Title
-    # -----------------------------------------------------------------------
     write_title_row(ws, title, N_COLS)
     ws.row_dimensions[1].height = 26
 
-    # Fixed column widths: Rep col + one col per size
     set_col_width(ws, 1, 10)
     for ci, size in enumerate(sizes, 2):
-        # wider for large numbers
         w = 10 if size <= 800 else 12 if size <= 3200 else 14
         set_col_width(ws, ci, w)
 
-    cur_row = 2   # next free row
+    cur_row = 2
 
-    # -----------------------------------------------------------------------
-    # Table 1 — Raw measurements (pivoted: reps as rows, sizes as cols)
-    # -----------------------------------------------------------------------
-    # Section label
+    # Table 1 — Raw measurements
     ws.merge_cells(f"A{cur_row}:{get_column_letter(N_COLS)}{cur_row}")
     sec = ws.cell(cur_row, 1, value="Tabla 1  —  Mediciones individuales (ms)")
     sec.font      = Font(name=FONT_NAME, bold=True, size=11, color="FFFFFF")
@@ -324,7 +440,6 @@ def write_sheet(wb: Workbook, name: str, title: str,
     for row_idx, row in enumerate(rows):
         row_reps = all_reps.get(row, {})
 
-        # --- impl block header ---
         ws.merge_cells(
             f"A{cur_row}:{get_column_letter(N_COLS)}{cur_row}"
         )
@@ -338,16 +453,12 @@ def write_sheet(wb: Workbook, name: str, title: str,
         ws.row_dimensions[cur_row].height = 20
         cur_row += 1
 
-        # --- column sub-header: Rep | N=400 | N=800 | ... ---
-        _hdr(ws.cell(cur_row, 1), "Rep",
-             bg=C["mid"], size=9)
+        _hdr(ws.cell(cur_row, 1), "Rep", bg=C["mid"], size=9)
         for ci, size in enumerate(sizes, 2):
-            _hdr(ws.cell(cur_row, ci), f"N = {size:,}",
-                 bg=C["mid"], size=9)
+            _hdr(ws.cell(cur_row, ci), f"N = {size:,}", bg=C["mid"], size=9)
         ws.row_dimensions[cur_row].height = 18
         cur_row += 1
 
-        # --- rep rows ---
         for rep in range(1, n_reps + 1):
             alt = (rep % 2 == 0)
             bg  = C["alt"] if alt else "FFFFFF"
@@ -366,10 +477,8 @@ def write_sheet(wb: Workbook, name: str, title: str,
             ws.row_dimensions[cur_row].height = 16
             cur_row += 1
 
-        # --- summary rows: Avg / StdDev / CV% ---
         summary_labels = ["Promedio", "Desv. Est.", "CV (%)"]
         for s_idx, s_label in enumerate(summary_labels):
-            is_last = (s_idx == len(summary_labels) - 1)
             _hdr(ws.cell(cur_row, 1), s_label,
                  bg=C_EXTRA["summary_bg"], fg=C_EXTRA["summary_fg"],
                  size=9, align="left")
@@ -391,7 +500,6 @@ def write_sheet(wb: Workbook, name: str, title: str,
             ws.row_dimensions[cur_row].height = 16
             cur_row += 1
 
-        # blank separator between impl blocks (except last)
         if row_idx < len(rows) - 1:
             for ci in range(1, N_COLS + 1):
                 ws.cell(cur_row, ci).fill = PatternFill(
@@ -400,24 +508,19 @@ def write_sheet(wb: Workbook, name: str, title: str,
             ws.row_dimensions[cur_row].height = 6
             cur_row += 1
 
-    cur_row += 2   # space before table 2
+    cur_row += 2
 
-    # -----------------------------------------------------------------------
     # Table 2 — Speedup summary
-    # -----------------------------------------------------------------------
     ws.merge_cells(f"A{cur_row}:{get_column_letter(N_COLS)}{cur_row}")
-    sec2 = ws.cell(cur_row, 1,
-                   value="Tabla 2  —  Promedio y Speedup")
+    sec2 = ws.cell(cur_row, 1, value="Tabla 2  —  Promedio y Speedup")
     sec2.font      = Font(name=FONT_NAME, bold=True, size=11, color="FFFFFF")
     sec2.fill      = PatternFill("solid", fgColor=C["dark"])
     sec2.alignment = Alignment(horizontal="left", vertical="center")
     ws.row_dimensions[cur_row].height = 20
     cur_row += 1
 
-    # SP table cols: Impl | [avg, sp] * n_sizes | Avg Sp
     N_SP = 1 + len(sizes) * 2 + 1
 
-    # Re-set widths for speedup table (same col indices, different meaning)
     set_col_width(ws, 1, 28)
     for si, size in enumerate(sizes):
         ac = 2 + si * 2
@@ -427,14 +530,11 @@ def write_sheet(wb: Workbook, name: str, title: str,
         set_col_width(ws, sc, 10)
     set_col_width(ws, N_SP, 12)
 
-    # SP header
     _hdr(ws.cell(cur_row, 1), "Implementación", bg=C["dark"], size=10)
     for si, size in enumerate(sizes):
         ac, sc = 2 + si * 2, 3 + si * 2
-        _hdr(ws.cell(cur_row, ac), f"N={size:,}\nAvg (ms)",
-             bg=C["mid"], size=9)
-        _hdr(ws.cell(cur_row, sc), f"N={size:,}\nSpeedup",
-             bg=C["mid"], size=9)
+        _hdr(ws.cell(cur_row, ac), f"N={size:,}\nAvg (ms)", bg=C["mid"], size=9)
+        _hdr(ws.cell(cur_row, sc), f"N={size:,}\nSpeedup", bg=C["mid"], size=9)
     _hdr(ws.cell(cur_row, N_SP), "Speedup\nProm.", bg=C["dark"], size=9)
     ws.row_dimensions[cur_row].height = 28
     cur_row += 1
@@ -475,10 +575,8 @@ def write_sheet(wb: Workbook, name: str, title: str,
             sp_c.number_format = "0.0000"
             sp_c.font      = Font(name=FONT_NAME, size=10,
                                   color=C["green_fg"])
-            sp_c.fill      = PatternFill("solid",
-                                          fgColor=C["green_bg"])
-            sp_c.alignment = Alignment(horizontal="right",
-                                       vertical="center")
+            sp_c.fill      = PatternFill("solid", fgColor=C["green_bg"])
+            sp_c.alignment = Alignment(horizontal="right", vertical="center")
             sp_c.border    = _thin_border()
 
             if not is_ref:
@@ -497,9 +595,6 @@ def write_sheet(wb: Workbook, name: str, title: str,
 
     chart_row_anchor = ri + 4  # type: ignore[possibly-undefined]
 
-    # -----------------------------------------------------------------------
-    # Charts — side by side
-    # -----------------------------------------------------------------------
     for anchor, path in [
         (f"A{chart_row_anchor}", ct),
         (f"L{chart_row_anchor}", cs),
@@ -521,8 +616,10 @@ def main() -> None:
     df_compiler = load_csv("compiler")
     df_cache    = load_csv("cache")
     df_mixed    = load_csv("mixed")
+    df_omp      = load_csv("omp")
 
-    frames = [d for d in [df_compiler, df_cache, df_mixed] if d is not None]
+    frames = [d for d in [df_compiler, df_cache, df_mixed, df_omp]
+              if d is not None]
     if not frames:
         print("No data found.")
         sys.exit(1)
@@ -536,10 +633,17 @@ def main() -> None:
                 all_reps[row] = {}
             all_reps[row].update(rdata)
 
-    avg_data = avgs(all_reps)
-    t_counts = sorted({r.threads for r in all_reps if r.impl == "threads"})
+    avg_data    = avgs(all_reps)
+    t_counts    = sorted({r.threads for r in all_reps if r.impl == "threads"})
+    t_counts_omp = sorted({r.threads for r in all_reps if r.impl == "omp"})
 
-    # Sheet row definitions
+    # Largest available size for the thread-count scaling chart.
+    largest_size = max(sizes)
+
+    # ------------------------------------------------------------------
+    # Sheets 1-6: existing comparisons
+    # ------------------------------------------------------------------
+
     ref1  = Row("seq_std", 0, "best")
     rows1 = (
         [ref1]
@@ -582,6 +686,32 @@ def main() -> None:
         + [Row("conc", 0, "noopt")]
     ) if r in all_reps]
 
+    # ------------------------------------------------------------------
+    # Sheets 7-9: OpenMP comparisons
+    # ------------------------------------------------------------------
+
+    # Sheet 7: all OpenMP thread counts, both with and without compiler opt.
+    ref7  = Row("seq_std", 0, "best")
+    rows7 = (
+        [ref7]
+        + [Row("omp", t, "noopt") for t in t_counts_omp
+           if Row("omp", t, "noopt") in all_reps]
+        + [Row("omp", t, "best")  for t in t_counts_omp
+           if Row("omp", t, "best")  in all_reps]
+    )
+
+    # Sheet 8: top-2 pthreads + top-1 OpenMP vs seq_std/best.
+    # Keeps the chart readable while showing the best each model can offer.
+    ref8           = Row("seq_std", 0, "best")
+    best2_pthreads = top_n_rows(avg_data, sizes, "threads", "noopt", ref8, 2)
+    best1_omp      = top_n_rows(avg_data, sizes, "omp",     "noopt", ref8, 1)
+    rows8          = [ref8] + best2_pthreads + best1_omp
+
+    # Sheet 9: parallel efficiency (speedup / n_threads).
+    # Same selection as sheet 8 so the efficiency chart is directly comparable.
+    ref9  = ref8
+    rows9 = rows8
+
     print("\nGenerating charts...")
 
     def gen(prefix: str, rows: list[Row], ref: Row,
@@ -611,6 +741,41 @@ def main() -> None:
         "Tiempo  |  seq_std/best vs hilos/noopt vs conc/noopt",
         "Speedup  |  ref = seq_std/best")
 
+    # Sheet 7 charts
+    ct7, cs7 = gen("s7", rows7, ref7,
+        "Tiempo  |  OpenMP sin opt  vs  Secuencial naive con O3_full",
+        "Speedup  |  T(seq_std/best) / T(omp_Nt/noopt)")
+
+    # Sheet 8 charts
+    ct8, cs8 = gen("s8", rows8, ref8,
+        "Tiempo  |  pthreads/noopt  vs  OpenMP/noopt  (mismos hilos)",
+        "Speedup  |  ref = seq_std/best  |  pthreads vs OpenMP sin opt")
+
+    # Sheet 9: efficiency chart replaces the standard speedup chart.
+    ct9 = chart_time(
+        rows9, avg_data, sizes,
+        "Tiempo  |  pthreads/noopt  vs  OpenMP/noopt  (todos los hilos)",
+        "s9_time.png",
+    )
+    print(f"  {os.path.basename(ct9)}")
+
+    cs9 = chart_efficiency(
+        rows9, avg_data, ref9, sizes,
+        "Eficiencia paralela  |  speedup / hilos  |  pthreads vs OpenMP",
+        "s9_efficiency.png",
+    )
+    print(f"  {os.path.basename(cs9)}")
+
+    # Sheet 9 also gets a bonus scaling chart (speedup vs thread count at
+    # the largest N), saved separately and embedded as a third chart.
+    cscale9 = chart_speedup_vs_threads(
+        rows9, avg_data, ref9, largest_size,
+        f"Escalabilidad  |  speedup vs hilos  |  N={largest_size:,}  |  pthreads vs OpenMP",
+        "s9_scaling.png",
+    )
+    if cscale9:
+        print(f"  {os.path.basename(cscale9)}")
+
     print("\nBuilding workbook...")
     wb = Workbook()
     if (default := wb.active) is not None:
@@ -635,23 +800,60 @@ def main() -> None:
                 "Efecto compilador  |  seq_std/best vs hilos/noopt vs conc/noopt",
                 rows6, all_reps, ref6, sizes, ct6, cs6)
 
+    # New OpenMP sheets
+    write_sheet(wb, "7. OpenMP speedup",
+                "OpenMP sin opt  |  Speedup = T(seq_std/best) / T(omp_Nt/noopt)",
+                rows7, all_reps, ref7, sizes, ct7, cs7)
+    write_sheet(wb, "8. OpenMP vs pthreads",
+                "OpenMP vs pthreads  |  sin opt  |  mismos conteos de hilos  |  ref = seq_std/best",
+                rows8, all_reps, ref8, sizes, ct8, cs8)
+
+    # Sheet 9 uses write_sheet for the tables then manually appends the
+    # scaling chart as a third image below the standard two.
+    write_sheet(wb, "9. Eficiencia paralela",
+                "Eficiencia paralela  |  speedup/hilos  |  pthreads vs OpenMP sin opt",
+                rows9, all_reps, ref9, sizes, ct9, cs9)
+    _append_scaling_chart(wb["9. Eficiencia paralela"], cscale9)
+
     wb.save(OUTPUT_PATH)
     print(f"\nSaved: {OUTPUT_PATH}")
 
     print("\nExporting table PNGs...")
     table_specs = [
-        (rows1, "1. Hilos sin opt",      "tabla_s1_hilos_sin_opt.png"),
-        (rows2, "2. Hilos con opt",      "tabla_s2_hilos_con_opt.png"),
-        (rows3, "3. Cache",              "tabla_s3_cache.png"),
-        (rows4, "4. Procesos",           "tabla_s4_procesos.png"),
-        (rows5, "5. Comparacion final",  "tabla_s5_comparacion.png"),
-        (rows6, "6. Efecto compilador",  "tabla_s6_compilador.png"),
+        (rows1, "1. Hilos sin opt",       "tabla_s1_hilos_sin_opt.png"),
+        (rows2, "2. Hilos con opt",        "tabla_s2_hilos_con_opt.png"),
+        (rows3, "3. Cache",               "tabla_s3_cache.png"),
+        (rows4, "4. Procesos",            "tabla_s4_procesos.png"),
+        (rows5, "5. Comparacion final",   "tabla_s5_comparacion.png"),
+        (rows6, "6. Efecto compilador",   "tabla_s6_compilador.png"),
+        (rows7, "7. OpenMP speedup",      "tabla_s7_omp_speedup.png"),
+        (rows8, "8. OpenMP vs pthreads",  "tabla_s8_omp_vs_threads.png"),
+        (rows9, "9. Eficiencia paralela", "tabla_s9_eficiencia.png"),
     ]
     for t_rows, t_title, t_fname in table_specs:
         path = export_table_png(t_rows, all_reps, sizes, t_title, t_fname)
         print(f"  {os.path.basename(path)}")
     print(f"  Tables saved to: {CHARTS_DIR}/")
 
+
+def _append_scaling_chart(ws, path: str) -> None:
+    """Appends the thread-count scaling chart to the right of existing charts."""
+    if not path or not os.path.exists(path):
+        return
+    # Find the row where the two main charts start by scanning for images.
+    # Simpler: anchor it two columns to the right of the second chart (col W).
+    img        = XLImage(path)
+    img.width  = 620
+    img.height = 360
+    # Existing charts occupy A and L; place this one at W (col 23).
+    ws.add_image(img, "W" + str(_chart_anchor_row(ws)))
+
+
+def _chart_anchor_row(ws) -> int:
+    """Returns the row index used for chart anchoring in write_sheet."""
+    # Charts are placed after the last data row + 4. We derive it from the
+    # sheet's max_row which includes all written data rows.
+    return ws.max_row - 20  # conservative estimate; adjust if layout shifts
 
 
 # ---------------------------------------------------------------------------
@@ -713,13 +915,11 @@ def export_table_png(rows: list[Row], all_reps: AllReps,
     ax.axis("off")
     fig.patch.set_facecolor("white")
 
-    # Title
     fig.text(0.5, 1 - title_h / fig_h * 0.6,
              table_title, ha="center", va="top",
              fontsize=10, fontweight="bold",
              fontfamily="DejaVu Sans")
 
-    # Compute relative positions
     total_w = sum(col_w)
     x_pos   = [sum(col_w[:i]) / total_w for i in range(n_cols)]
     x_pos.append(1.0)
@@ -732,7 +932,6 @@ def export_table_png(rows: list[Row], all_reps: AllReps,
     ALT_BG  = "#F2F9FF"
     REF_BG  = "#FFF2CC"
 
-    # Header row
     for ci in range(n_cols):
         x0 = x_pos[ci]
         x1 = x_pos[ci + 1]
@@ -749,7 +948,6 @@ def export_table_png(rows: list[Row], all_reps: AllReps,
                 fontfamily="DejaVu Sans",
                 transform=ax.transAxes)
 
-    # Data rows
     for ri, row_vals in enumerate(table_data):
         is_ref  = (ri == 0)
         bg      = REF_BG if is_ref else (ALT_BG if ri % 2 == 0 else "white")

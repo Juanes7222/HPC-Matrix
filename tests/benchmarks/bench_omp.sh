@@ -28,11 +28,13 @@ fi
 
 MACHINE_FLAG="$1"
 shift
+BEST_CONFIG="$1" #true or false, determines if BEST_FLAGS or NORMAL_FLAGS are used for compilation
+shift
 EXPLICIT_THREADS=("$@")
 
-
 BIN_DIR="bin"
-RESULTS_DIR="tests/benchmarks/${MACHINE_FLAG}/results_omp"
+BASE_DIR="tests/benchmarks/${MACHINE_FLAG}"
+RESULTS_DIR="${BASE_DIR}/results_omp"
 MATRIX_SIZES=(400 800 1600 3200 6400)
 REPETITIONS=10
 
@@ -81,7 +83,9 @@ else
     build_thread_sweep
 fi
 
-BEST_FLAGS="-Wall"
+
+NORMAL_FLAGS="-Wall"
+BEST_FLAGS="-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer"
 CSV_HEADER="machine,impl,flags,threads,matrix_size,repetition,wall_time_ms"
 BIN_OMP="${BIN_DIR}/mul_omp"
 SRC_OMP="src/openmp/mul_openmp.c"
@@ -98,6 +102,9 @@ compile_omp() {
     fi
 
     local flags_clean
+    if [[ "${BEST_CONFIG}" != "true" ]]; then
+        BEST_FLAGS="${NORMAL_FLAGS}"
+    fi
     flags_clean=$(echo "${BEST_FLAGS}" | tr -s ' ' | xargs)
     log_info "Compiling mul_omp via Makefile (flags: ${flags_clean})"
 
@@ -307,6 +314,8 @@ main() {
     compile_omp
     run_benchmark
     print_summary
+
+    cp "${RESULTS_DIR}/${RESULT_FILE}" "${BASE_DIR}/results_final/" 2>/dev/null || true
 }
 
 if [[ -z "${INHIBITED:-}" ]]; then
