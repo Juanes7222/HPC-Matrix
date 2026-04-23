@@ -6,29 +6,32 @@ cd "$(dirname "$0")/../.."
 source "tests/benchmarks/bench_utils.sh"
 
 # ---------------------------------------------------------------------------
-# Usage: bench_omp.sh <machine_flag> [thread_count...]
+# Usage: bench_omp.sh [--best] <machine_flag> [thread_count...]
 #
 # Examples:
-#   ./bench_omp.sh machine1          # full sweep over all thread counts
-#   ./bench_omp.sh machine1 6        # only 6 threads
-#   ./bench_omp.sh machine1 2 4 6    # only the listed thread counts
+#   ./bench_omp.sh machine1               # sweep normal, flags sin opt
+#   ./bench_omp.sh --best machine1        # sweep con flags optimizadas
+#   ./bench_omp.sh --best machine1 2 4 6  # threads específicos con best flags
 # ---------------------------------------------------------------------------
 
-if [[ $# -lt 1 ]]; then
-    echo "Usage: $0 <machine_flag> [thread_count...]" >&2
-    exit 1
-fi
+ORIGINAL_ARGS=("$@")
 
-ORIGINAL_ARGS=("$@")   # save before any shift
+BEST_CONFIG=false
+
+# Consume --best antes de los positional args
+while [[ $# -gt 0 && "$1" == --* ]]; do
+    case "$1" in
+        --best) BEST_CONFIG=true ; shift ;;
+        *)      echo "Unknown flag: $1" >&2 ; exit 1 ;;
+    esac
+done
 
 if [[ $# -lt 1 ]]; then
-    echo "Usage: $0 <machine_flag> [thread_count...]" >&2
+    echo "Usage: $0 [--best] <machine_flag> [thread_count...]" >&2
     exit 1
 fi
 
 MACHINE_FLAG="$1"
-shift
-BEST_CONFIG="$1" #true or false, determines if BEST_FLAGS or NORMAL_FLAGS are used for compilation
 shift
 EXPLICIT_THREADS=("$@")
 
@@ -86,9 +89,12 @@ fi
 
 NORMAL_FLAGS="-Wall"
 BEST_FLAGS="-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer"
-CSV_HEADER="machine,impl,flags,threads,matrix_size,repetition,wall_time_ms"
-BIN_OMP="${BIN_DIR}/mul_omp_opt"
-if [[ "${BEST_CONFIG}" != "true" ]]; then
+
+if [[ "${BEST_CONFIG}" == true ]]; then
+    ACTIVE_FLAGS="${BEST_FLAGS}"
+    BIN_OMP="${BIN_DIR}/mul_omp_opt"
+else
+    ACTIVE_FLAGS="${NORMAL_FLAGS}"
     BIN_OMP="${BIN_DIR}/mul_omp_noopt"
 fi
 SRC_OMP="src/openmp/mul_openmp.c"
@@ -105,10 +111,7 @@ compile_omp() {
     fi
 
     local flags_clean
-    if [[ "${BEST_CONFIG}" != "true" ]]; then
-        BEST_FLAGS="${NORMAL_FLAGS}"
-    fi
-    flags_clean=$(echo "${BEST_FLAGS}" | tr -s ' ' | xargs)
+    flags_clean=$(echo "${ACTIVE_FLAGS}" | tr -s ' ' | xargs)
     log_info "Compiling mul_omp via Makefile (flags: ${flags_clean})"
 
     if make -B bin/mul_omp OPT_FLAGS="${flags_clean}" >/dev/null 2>&1; then
@@ -150,7 +153,7 @@ run_single() {
 write_row() {
     local csv="$1" machine="$2" threads="$3" size="$4" rep="$5" ms="$6"
     printf '%s,mul_omp,"%s",%s,%s,%s,%s\n' \
-        "${machine}" "${BEST_FLAGS}" "${threads}" \
+        "${machine}" "${ACTIVE_FLAGS}" "${threads}" \
         "${size}" "${rep}" "${ms}" >> "${csv}"
     sync
 }
@@ -298,7 +301,7 @@ print_banner() {
     echo "   Threads      : ${ALL_THREAD_COUNTS[*]}"
     echo "   Sizes        : ${MATRIX_SIZES[*]}"
     echo "   Repetitions  : ${REPETITIONS}"
-    echo "   Flags        : ${BEST_FLAGS}"
+    echo "   Flags        : ${ACTIVE_FLAGS}"
     echo "   Date         : $(date '+%Y-%m-%d %H:%M:%S')"
     echo "============================================================"
     echo -e "${RESET}"
