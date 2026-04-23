@@ -87,8 +87,8 @@ else
 fi
 
 
-NORMAL_FLAGS="-Wall"
-BEST_FLAGS="-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer"
+NORMAL_FLAGS=""
+BEST_FLAGS="-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer"
 
 if [[ "${BEST_CONFIG}" == true ]]; then
     ACTIVE_FLAGS="${BEST_FLAGS}"
@@ -97,6 +97,7 @@ else
     ACTIVE_FLAGS="${NORMAL_FLAGS}"
     BIN_OMP="${BIN_DIR}/mul_omp_noopt"
 fi
+CSV_HEADER="machine,impl,flags,threads,matrix_size,repetition,wall_time_ms"
 SRC_OMP="src/openmp/mul_openmp.c"
 
 compile_omp() {
@@ -112,9 +113,9 @@ compile_omp() {
 
     local flags_clean
     flags_clean=$(echo "${ACTIVE_FLAGS}" | tr -s ' ' | xargs)
-    log_info "Compiling mul_omp via Makefile (flags: ${flags_clean})"
+    log_info "Compiling ${BIN_OMP} via Makefile (flags: ${flags_clean})"
 
-    if make -B bin/mul_omp OPT_FLAGS="${flags_clean}" >/dev/null 2>&1; then
+    if make -B "${BIN_OMP}" OPT_FLAGS="${flags_clean}" >/dev/null 2>&1; then
         log_ok "Binary: ${BIN_OMP}"
     else
         log_error "Compilation failed: ${SRC_OMP}"
@@ -125,10 +126,15 @@ compile_omp() {
 already_done() {
     local csv="$1" machine="$2" threads="$3" size="$4" rep="$5"
     awk -F',' \
-        -v ma="${machine}" -v th="${threads}" \
+        -v ma="${machine}" -v fl="${ACTIVE_FLAGS}" -v th="${threads}" \
         -v si="${size}"    -v re="${rep}" \
-        'NR>1 && $1==ma && $4==th && $5==si && $6==re { found=1 }
-         END { print found+0 }' \
+        'NR>1 {
+            # Elimina comillas dobles del campo flags antes de comparar
+            gsub(/"/, "", $3)
+            if ($1==ma && $3==fl && $4==th && $5==si && $6==re)
+                found=1
+        }
+        END { print found+0 }' \
         "${csv}" 2>/dev/null
 }
 
@@ -167,7 +173,7 @@ run_benchmark() {
         for rep in $(seq 1 "${REPETITIONS}"); do
             for size in "${MATRIX_SIZES[@]}"; do
                 if [[ "$(already_done "${csv}" "${MACHINE_FLAG}" \
-                        "${threads}" "${size}" "${rep}")" -gt 0 ]]; then
+                        "${threads}" "${size}" "${rep}" )" -gt 0 ]]; then
                     log_info "  [SKIP] threads=${threads} size=${size} rep=${rep}"
                     continue
                 fi

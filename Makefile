@@ -17,7 +17,8 @@ SEQ = $(BIN_DIR)/mul_seq
 SEQ_CACHE = $(BIN_DIR)/mul_seq_cache
 THREADS = $(BIN_DIR)/mul_threads
 PROCESSES = $(BIN_DIR)/mul_conc
-OPENMP = $(BIN_DIR)/mul_omp
+OMP_OPT   = $(BIN_DIR)/mul_omp_opt
+OMP_NOOPT = $(BIN_DIR)/mul_omp_noopt
 VERIFY = $(BIN_DIR)/verify_mul
 
 all: setup $(SEQ) $(SEQ_CACHE) $(THREADS) $(PROCESSES) $(OPENMP) $(VERIFY)
@@ -40,7 +41,10 @@ $(THREADS): $(SRC_DIR)/threads/mul_threads.c $(LIB_OBJ)
 $(PROCESSES): $(SRC_DIR)/processes/mul_conc.c $(LIB_OBJ)
 	$(CC) $(CFLAGS) $(OPT_FLAGS) $^ -o $@
 
-$(OPENMP): $(SRC_DIR)/openmp/mul_openmp.c $(LIB_OBJ)
+$(OMP_OPT): $(SRC_DIR)/openmp/mul_openmp.c $(LIB_OBJ)
+	$(CC) $(CFLAGS) $(OPT_FLAGS) $(OMP_FLAGS) $^ -o $@
+
+$(OMP_NOOPT): $(SRC_DIR)/openmp/mul_openmp.c $(LIB_OBJ)
 	$(CC) $(CFLAGS) $(OPT_FLAGS) $(OMP_FLAGS) $^ -o $@
 
 $(VERIFY): $(TESTS_DIR)/correctness/verify_mul.c $(LIB_OBJ)
