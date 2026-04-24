@@ -205,14 +205,21 @@ def avgs(reps: AllReps) -> dict[Row, dict[int, float]]:
 
 
 def top_n_rows(avg_data: dict[Row, dict], sizes: list[int],
-               impl: str, tag: str, ref: Row, n: int) -> list[Row]:
-    """Returns the n rows for the given impl/tag ranked by average speedup over ref."""
+               impl: str, ref: Row, n: int,
+               tag: str | None = None) -> list[Row]:
+    """Returns the n rows for the given impl ranked by average speedup over ref.
+
+    When tag is None all tags for the impl are considered, so the result may
+    mix noopt and best variants if that produces the highest speedup.
+    """
     ref_avgs = avg_data.get(ref, {})
     if not ref_avgs:
         return []
     ranked: list[tuple[float, Row]] = []
     for row, times in avg_data.items():
-        if row.impl != impl or row.tag != tag:
+        if row.impl != impl:
+            continue
+        if tag is not None and row.tag != tag:
             continue
         sp_vals = [ref_avgs[s] / times[s]
                    for s in sizes
@@ -411,10 +418,6 @@ def write_sheet(wb: Workbook, name: str, title: str,
                 ct: str, cs: str) -> None:
     ws  = wb.create_sheet(name)
     avg_data = avgs(all_reps)
-    n_reps   = max(
-        (len(p) for row in rows for p in all_reps.get(row, {}).values()),
-        default=10,
-    )
 
     N_COLS = 1 + len(sizes)
 
@@ -439,6 +442,7 @@ def write_sheet(wb: Workbook, name: str, title: str,
 
     for row_idx, row in enumerate(rows):
         row_reps = all_reps.get(row, {})
+        n_reps   = max((len(p) for p in row_reps.values()), default=10)
 
         ws.merge_cells(
             f"A{cur_row}:{get_column_letter(N_COLS)}{cur_row}"
@@ -690,27 +694,38 @@ def main() -> None:
     # Sheets 7-9: OpenMP comparisons
     # ------------------------------------------------------------------
 
-    # Sheet 7: all OpenMP thread counts, both with and without compiler opt.
+    # Sheet 7: OpenMP without compiler optimisation — all thread counts.
     ref7  = Row("seq_std", 0, "best")
     rows7 = (
         [ref7]
         + [Row("omp", t, "noopt") for t in t_counts_omp
            if Row("omp", t, "noopt") in all_reps]
-        + [Row("omp", t, "best")  for t in t_counts_omp
-           if Row("omp", t, "best")  in all_reps]
     )
 
-    # Sheet 8: top-2 pthreads + top-1 OpenMP vs seq_std/best.
-    # Keeps the chart readable while showing the best each model can offer.
-    ref8           = Row("seq_std", 0, "best")
-    best2_pthreads = top_n_rows(avg_data, sizes, "threads", "noopt", ref8, 2)
-    best1_omp      = top_n_rows(avg_data, sizes, "omp",     "noopt", ref8, 1)
-    rows8          = [ref8] + best2_pthreads + best1_omp
+    # Sheet 8: OpenMP with compiler optimisation — all thread counts.
+    ref8  = Row("seq_std", 0, "best")
+    rows8 = (
+        [ref8]
+        + [Row("omp", t, "best") for t in t_counts_omp
+           if Row("omp", t, "best") in all_reps]
+    )
 
-    # Sheet 9: parallel efficiency (speedup / n_threads).
-    # Same selection as sheet 8 so the efficiency chart is directly comparable.
-    ref9  = ref8
-    rows9 = rows8
+    # Sheet 9: pthreads noopt vs OpenMP noopt — top 2 pthreads + top 1 OMP.
+    ref9           = Row("seq_std", 0, "best")
+    best2_pt_noopt = top_n_rows(avg_data, sizes, "threads", ref9, 2, tag="noopt")
+    best1_omp_noopt = top_n_rows(avg_data, sizes, "omp",    ref9, 1, tag="noopt")
+    rows9          = [ref9] + best2_pt_noopt + best1_omp_noopt
+
+    # Sheet 10: pthreads best vs OpenMP best — top 2 pthreads + top 1 OMP.
+    ref10            = Row("seq_std", 0, "best")
+    best2_pt_best    = top_n_rows(avg_data, sizes, "threads", ref10, 2, tag="best")
+    best1_omp_best   = top_n_rows(avg_data, sizes, "omp",     ref10, 1, tag="best")
+    rows10           = [ref10] + best2_pt_best + best1_omp_best
+
+    # Sheet 11a/11b: parallel efficiency separated by opt level.
+    ref11       = Row("seq_std", 0, "best")
+    rows11_noopt = [ref11] + best2_pt_noopt + best1_omp_noopt
+    rows11_best  = [ref11] + best2_pt_best  + best1_omp_best
 
     print("\nGenerating charts...")
 
@@ -741,40 +756,60 @@ def main() -> None:
         "Tiempo  |  seq_std/best vs hilos/noopt vs conc/noopt",
         "Speedup  |  ref = seq_std/best")
 
-    # Sheet 7 charts
+    # Sheet 7: OMP noopt
     ct7, cs7 = gen("s7", rows7, ref7,
-        "Tiempo  |  OpenMP sin opt  vs  Secuencial naive con O3_full",
+        "Tiempo  |  OpenMP sin opt  vs  seq_std/best",
         "Speedup  |  T(seq_std/best) / T(omp_Nt/noopt)")
 
-    # Sheet 8 charts
+    # Sheet 8: OMP best
     ct8, cs8 = gen("s8", rows8, ref8,
-        "Tiempo  |  pthreads/noopt  vs  OpenMP/noopt  (mismos hilos)",
-        "Speedup  |  ref = seq_std/best  |  pthreads vs OpenMP sin opt")
+        "Tiempo  |  OpenMP con O3_full  vs  seq_std/best",
+        "Speedup  |  T(seq_std/best) / T(omp_Nt/best)")
 
-    # Sheet 9: efficiency chart replaces the standard speedup chart.
-    ct9 = chart_time(
-        rows9, avg_data, sizes,
-        "Tiempo  |  pthreads/noopt  vs  OpenMP/noopt  (todos los hilos)",
-        "s9_time.png",
+    # Sheet 9: pthreads noopt vs OMP noopt
+    ct9, cs9 = gen("s9", rows9, ref9,
+        "Tiempo  |  pthreads sin opt  vs  OpenMP sin opt  (top 2 + top 1)",
+        "Speedup  |  ref = seq_std/best  |  pthreads/noopt vs omp/noopt")
+
+    # Sheet 10: pthreads best vs OMP best
+    ct10, cs10 = gen("s10", rows10, ref10,
+        "Tiempo  |  pthreads con O3_full  vs  OpenMP con O3_full  (top 2 + top 1)",
+        "Speedup  |  ref = seq_std/best  |  pthreads/best vs omp/best")
+
+    # Sheet 11: efficiency split by opt level — two time charts + two efficiency charts
+    ct11n = chart_time(
+        rows11_noopt, avg_data, sizes,
+        "Tiempo  |  pthreads/noopt vs omp/noopt  (top seleccion)",
+        "s11n_time.png",
     )
-    print(f"  {os.path.basename(ct9)}")
-
-    cs9 = chart_efficiency(
-        rows9, avg_data, ref9, sizes,
-        "Eficiencia paralela  |  speedup / hilos  |  pthreads vs OpenMP",
-        "s9_efficiency.png",
+    print(f"  {os.path.basename(ct11n)}")
+    cs11n = chart_efficiency(
+        rows11_noopt, avg_data, ref11, sizes,
+        "Eficiencia  |  sin opt  |  speedup/hilos  |  pthreads vs OpenMP",
+        "s11n_efficiency.png",
     )
-    print(f"  {os.path.basename(cs9)}")
+    print(f"  {os.path.basename(cs11n)}")
 
-    # Sheet 9 also gets a bonus scaling chart (speedup vs thread count at
-    # the largest N), saved separately and embedded as a third chart.
-    cscale9 = chart_speedup_vs_threads(
-        rows9, avg_data, ref9, largest_size,
+    ct11b = chart_time(
+        rows11_best, avg_data, sizes,
+        "Tiempo  |  pthreads/best vs omp/best  (top seleccion)",
+        "s11b_time.png",
+    )
+    print(f"  {os.path.basename(ct11b)}")
+    cs11b = chart_efficiency(
+        rows11_best, avg_data, ref11, sizes,
+        "Eficiencia  |  con O3_full  |  speedup/hilos  |  pthreads vs OpenMP",
+        "s11b_efficiency.png",
+    )
+    print(f"  {os.path.basename(cs11b)}")
+
+    cscale = chart_speedup_vs_threads(
+        rows11_noopt + rows11_best, avg_data, ref11, largest_size,
         f"Escalabilidad  |  speedup vs hilos  |  N={largest_size:,}  |  pthreads vs OpenMP",
-        "s9_scaling.png",
+        "s11_scaling.png",
     )
-    if cscale9:
-        print(f"  {os.path.basename(cscale9)}")
+    if cscale:
+        print(f"  {os.path.basename(cscale)}")
 
     print("\nBuilding workbook...")
     wb = Workbook()
@@ -800,35 +835,44 @@ def main() -> None:
                 "Efecto compilador  |  seq_std/best vs hilos/noopt vs conc/noopt",
                 rows6, all_reps, ref6, sizes, ct6, cs6)
 
-    # New OpenMP sheets
-    write_sheet(wb, "7. OpenMP speedup",
+    write_sheet(wb, "7. OpenMP sin opt",
                 "OpenMP sin opt  |  Speedup = T(seq_std/best) / T(omp_Nt/noopt)",
                 rows7, all_reps, ref7, sizes, ct7, cs7)
-    write_sheet(wb, "8. OpenMP vs pthreads",
-                "OpenMP vs pthreads  |  sin opt  |  mismos conteos de hilos  |  ref = seq_std/best",
+    write_sheet(wb, "8. OpenMP con opt",
+                "OpenMP con O3_full  |  Speedup = T(seq_std/best) / T(omp_Nt/best)",
                 rows8, all_reps, ref8, sizes, ct8, cs8)
-
-    # Sheet 9 uses write_sheet for the tables then manually appends the
-    # scaling chart as a third image below the standard two.
-    write_sheet(wb, "9. Eficiencia paralela",
-                "Eficiencia paralela  |  speedup/hilos  |  pthreads vs OpenMP sin opt",
+    write_sheet(wb, "9. pthreads vs OMP sin opt",
+                "pthreads/noopt vs OMP/noopt  |  top 2 pthreads + top 1 OMP  |  ref = seq_std/best",
                 rows9, all_reps, ref9, sizes, ct9, cs9)
-    _append_scaling_chart(wb["9. Eficiencia paralela"], cscale9)
+    write_sheet(wb, "10. pthreads vs OMP con opt",
+                "pthreads/best vs OMP/best  |  top 2 pthreads + top 1 OMP  |  ref = seq_std/best",
+                rows10, all_reps, ref10, sizes, ct10, cs10)
+    write_sheet(wb, "11. Eficiencia sin opt",
+                "Eficiencia paralela  |  sin opt  |  speedup/hilos  |  pthreads vs OpenMP",
+                rows11_noopt, all_reps, ref11, sizes, ct11n, cs11n)
+    _append_scaling_chart(wb["11. Eficiencia sin opt"], cscale)
+    write_sheet(wb, "12. Eficiencia con opt",
+                "Eficiencia paralela  |  con O3_full  |  speedup/hilos  |  pthreads vs OpenMP",
+                rows11_best, all_reps, ref11, sizes, ct11b, cs11b)
+    _append_scaling_chart(wb["12. Eficiencia con opt"], cscale)
 
     wb.save(OUTPUT_PATH)
     print(f"\nSaved: {OUTPUT_PATH}")
 
     print("\nExporting table PNGs...")
     table_specs = [
-        (rows1, "1. Hilos sin opt",       "tabla_s1_hilos_sin_opt.png"),
-        (rows2, "2. Hilos con opt",        "tabla_s2_hilos_con_opt.png"),
-        (rows3, "3. Cache",               "tabla_s3_cache.png"),
-        (rows4, "4. Procesos",            "tabla_s4_procesos.png"),
-        (rows5, "5. Comparacion final",   "tabla_s5_comparacion.png"),
-        (rows6, "6. Efecto compilador",   "tabla_s6_compilador.png"),
-        (rows7, "7. OpenMP speedup",      "tabla_s7_omp_speedup.png"),
-        (rows8, "8. OpenMP vs pthreads",  "tabla_s8_omp_vs_threads.png"),
-        (rows9, "9. Eficiencia paralela", "tabla_s9_eficiencia.png"),
+        (rows1,       "1. Hilos sin opt",           "tabla_s1_hilos_sin_opt.png"),
+        (rows2,       "2. Hilos con opt",            "tabla_s2_hilos_con_opt.png"),
+        (rows3,       "3. Cache",                   "tabla_s3_cache.png"),
+        (rows4,       "4. Procesos",                "tabla_s4_procesos.png"),
+        (rows5,       "5. Comparacion final",       "tabla_s5_comparacion.png"),
+        (rows6,       "6. Efecto compilador",       "tabla_s6_compilador.png"),
+        (rows7,       "7. OpenMP sin opt",          "tabla_s7_omp_noopt.png"),
+        (rows8,       "8. OpenMP con opt",          "tabla_s8_omp_best.png"),
+        (rows9,       "9. pthreads vs OMP sin opt", "tabla_s9_pt_vs_omp_noopt.png"),
+        (rows10,      "10. pthreads vs OMP con opt","tabla_s10_pt_vs_omp_best.png"),
+        (rows11_noopt,"11. Eficiencia sin opt",     "tabla_s11_efic_noopt.png"),
+        (rows11_best, "12. Eficiencia con opt",     "tabla_s12_efic_best.png"),
     ]
     for t_rows, t_title, t_fname in table_specs:
         path = export_table_png(t_rows, all_reps, sizes, t_title, t_fname)
