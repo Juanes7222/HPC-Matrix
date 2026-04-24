@@ -97,7 +97,7 @@ compile_binaries() {
     mkdir -p "${BIN_DIR}"
 
     if [[ "${FORCE}" -eq 1 ]] || [[ ! -x "${BIN_PERF}" ]]; then
-        local cmd="gcc -O2 -g -I./src -o ${BIN_PERF} ${SRC_FILES}"
+        local cmd="gcc -g -I./src -o ${BIN_PERF} ${SRC_FILES}"
         log_info "perf/valgrind binary: ${cmd}"
         eval "${cmd}" && log_ok "${BIN_PERF}" || { log_error "Compilation failed"; exit 1; }
     else
@@ -107,7 +107,7 @@ compile_binaries() {
     # -fno-inline prevents the compiler from silencing hot leaf functions that
     # would otherwise be inlined and disappear from gprof's flat profile.
     if [[ "${FORCE}" -eq 1 ]] || [[ ! -x "${BIN_GPROF}" ]]; then
-        local cmd="gcc -O2 -fno-inline -g -pg -I./src -o ${BIN_GPROF} ${SRC_FILES}"
+        local cmd="gcc -fno-inline -g -pg -I./src -o ${BIN_GPROF} ${SRC_FILES}"
         log_info "gprof binary: ${cmd}"
         eval "${cmd}" && log_ok "${BIN_GPROF}" || { log_error "Compilation failed"; exit 1; }
     else
