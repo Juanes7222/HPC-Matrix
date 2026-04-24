@@ -19,37 +19,6 @@ Los resultados de todas las herramientas se consolidan en un archivo CSV
 (\texttt{data\_profiling.csv}) que sirve de entrada al generador de reportes.
 
 
-\subsection{Temporización estadística}
-
-La primera técnica consiste en ejecutar el binario \texttt{mul\_seq\_perf}
-un total de $\text{TIMING\_RUNS} = 10$ veces de forma independiente y registrar
-el tiempo reportado por el propio programa en milisegundos.
-La primera ejecución se descarta como \textit{warm-up}: su propósito es poblar
-la caché de instrucciones y datos del procesador para que las corridas medidas
-no incluyan el costo de la carga inicial desde memoria principal.
-
-Con los valores obtenidos se calcula la media aritmética $\bar{t}$ y la desviación
-estándar $\sigma_t$.
-El coeficiente de variación
-\begin{equation}
-    CV = \frac{\sigma_t}{\bar{t}} \times 100\%
-\end{equation}
-cuantifica la estabilidad experimental: un $CV$ bajo (generalmente menor al 2\%)
-indica que las mediciones son reproducibles y no están contaminadas por
-interferencia del sistema operativo o por efectos térmicos del procesador.
-Un $CV$ elevado, en cambio, sugiere que el sistema no se encontraba en condiciones
-estables durante la medición.
-
-El rendimiento en GFLOP/s se deriva de la temporización mediante la relación
-\begin{equation}
-    \text{GFLOPS} = \frac{2N^3}{\bar{t} \times 10^{-3} \times 10^{9}},
-\end{equation}
-donde $2N^3$ es el número exacto de operaciones de multiplicación-acumulación
-del algoritmo estándar de multiplicación de matrices densas.
-Este valor normaliza el rendimiento respecto al tamaño del problema y permite
-comparar directamente distintas implementaciones y arquitecturas.
-
-
 \subsection{gprof: perfilado por instrumentación del compilador}
 
 \texttt{gprof} es una herramienta de perfilado basada en instrumentación generada
@@ -65,9 +34,7 @@ El binario \texttt{mul\_seq\_gprof} se compila con las flags \texttt{-pg} y
         archivo binario llamado \texttt{gmon.out}.
     \item \textbf{\texttt{-fno-inline}}: impide que el compilador reemplace el cuerpo
         de las funciones directamente en sus sitios de llamada (\textit{inlining}).
-        Sin esta flag, bajo optimización \texttt{-O2}, funciones pequeñas del kernel
-        de multiplicación podrían desaparecer del perfil porque ya no existen como
-        entidades separadas en el código objeto.
+        
 \end{itemize}
 
 El reporte que produce \texttt{gprof} tiene dos partes principales:
@@ -100,10 +67,6 @@ y el layout de código.
 (PMU), un conjunto de registros físicos presentes en el procesador
 diseñados específicamente para contar eventos de hardware con un overhead
 mínimo sobre el programa medido.
-El script lo ejecuta con la flag \texttt{-r~5}, lo que indica a \texttt{perf}
-que repita la ejecución cinco veces y reporte el promedio de cada contador junto
-con su coeficiente de variación, brindando así información estadística sobre la
-estabilidad de las mediciones de hardware.
 
 El conjunto de eventos medidos cubre cuatro categorías de cuello de botella típicos
 en el contexto de la multiplicación de matrices:
