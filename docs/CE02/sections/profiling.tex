@@ -51,7 +51,7 @@ El reporte que produce \texttt{gprof} tiene dos partes principales:
         porque invoca a subfunciones costosas.
 \end{itemize}
 
-La limitación inherente de \texttt{gprof} es que su medición del tiempo se basa
+La limitación de \texttt{gprof} es que su medición del tiempo se basa
 en muestreo estadístico del contador de programa (\textit{program counter}) con
 una resolución de aproximadamente 10\,ms.
 Para programas de corta duración o con alta granularidad de funciones los
@@ -104,7 +104,7 @@ Los eventos \texttt{L1-dcache-loads} y \texttt{L1-dcache-load-misses} miden la
 localidad efectiva del acceso a datos en el nivel de caché más cercano al
 procesador.
 La tasa de fallo en L1-D es el indicador más sensible al orden de los bucles en
-el algoritmo: el orden canónico $i$-$j$-$k$ produce accesos no contiguos a la
+el algoritmo: el orden $i$-$j$-$k$ produce accesos no contiguos a la
 columna \texttt{matrix2[k][j]}, penalizando directamente este contador.
 
 \paragraph{Translation Lookaside Buffer (TLB).}
@@ -182,7 +182,7 @@ siguientes niveles de la jerarquía:
 \end{itemize}
 
 La utilidad de \texttt{perf mem} en el contexto de la multiplicación de matrices
-reside en cuantificar la \textbf{distribución efectiva de latencias}: para
+reside en cuantificar la distribución efectiva de latencias: para
 $N = 128$ se espera que la mayoría de accesos sean L1 o L2 hits porque las
 matrices caben en los niveles superiores de caché, mientras que para $N = 1024$
 el porcentaje de RAM hits debe escalar significativamente, ya que las tres
@@ -242,7 +242,7 @@ del heap, cada uno compuesto por:
     \item \textbf{Useful heap bytes}: memoria correspondiente a bloques solicitados
         explícitamente por el programa.
     \item \textbf{Extra heap bytes}: overhead interno del gestor de memoria
-        (\textit{metadata} de los bloques, alineación y fragmentación interna).
+        (metadata de los bloques, alineación y fragmentación interna).
 \end{itemize}
 
 La herramienta \texttt{ms\_print} formatea estos snapshots en un reporte textual
@@ -307,12 +307,12 @@ sus tiempos de ejecución no son representativos del rendimiento real.
 
 \subsection{Visión de conjunto y complementariedad}
 
-Las seis técnicas de perfilado del script cubren dimensiones ortogonales del
-comportamiento del programa: ninguna de ellas por sí sola es suficiente para
+Las seis técnicas de perfilado del script cubren distintas dimensiones del
+comportamiento del programa, ninguna de ellas por sí sola es suficiente para
 construir un diagnóstico completo.
 La Tabla~\ref{tab:profiling_tools} resume la complementariedad entre herramientas.
 
-\begin{table}[h]
+\begin{table}[H]
 \centering
 \caption{Herramientas de perfilado utilizadas, su tipo de medición y su limitación principal}
 \label{tab:profiling_tools}
@@ -336,9 +336,11 @@ Valgrind Cachegrind & Simulación de caché     & ¿Qué instrucciones son más 
 \subsection{Resultados del perfilado}
 \label{sec:Resultados del perfilado}
 
-La Tabla~\ref{tab:seq_profiling} consolida los resultados de las seis técnicas de perfilado aplicadas a la multiplicación de matrices clásica para tamaños crecientes, $N \in \{128, 256, 512, 1024\}$. La triangulación de herramientas permite identificar con precisión el origen de las limitaciones de rendimiento observadas.
+La Tabla~\ref{tab:seq_profiling} consolida los resultados de las seis técnicas de perfilado aplicadas a la multiplicación de matrices clásica para tamaños crecientes, $N \in \{128, 256, 512, 1024\}$. El uso de distintas herramientas permite identificar con precisión el origen de las limitaciones de rendimiento observadas. Algo que aclarar sobre el uso de distintos tamaños de matrices es que es útil para el perfilado de memoria y no para el de CPU sabiendo que con distintos tamaños de matrices se pueden identificar distintos cuellos de botella relacionados con la jerarquía de memoria, mientras que el perfilado de CPU se enfoca en identificar el hotspot dominante, que es el mismo para todos los tamaños. Por eso, aunque se ejecutaron las seis técnicas para los cuatro tamaños, el análisis del hotspot se centra exclusivamente en $N=1024$, que es el caso más representativo del comportamiento real del programa en producción.
 
-\begin{table}[h]
+\textbf{Nota}: El perfilado se hizo en la maquina 1.
+
+\begin{table}[H]
 \centering
 \caption{Caracterización de la implementación secuencial de multiplicación de matrices}
 \label{tab:seq_profiling}
@@ -358,9 +360,9 @@ $N$ & Time mean (ms) & Std (ms) & GFLOPS & IPC & Cache Miss \% & L1 Miss \% & dT
 
 \subsubsection{Localización del hotspot}
 
-Las herramientas de perfilado coinciden en señalar la función de multiplicación como la única fuente relevante de cómputo. El reporte de gprof le atribuye el 100\% del tiempo de ejecución, mientras que perf record indica que para $N=1024$ esta función concentra el 98.45\% de la actividad en el procesador, dejando apenas un 1.5\% restante a rutinas del sistema como la inicialización y el llenado de matrices. Valgrind Cachegrind refuerza este resultado al asociarle el 98.5\% de las referencias de instrucción contabilizadas. Con esto podemos decir que todo el peso computacional recae sobre los tres bucles anidados del algoritmo, y cualquier optimización debe dirigirse exclusivamente a esa región.
+Las herramientas de perfilado coinciden en señalar la función de multiplicación como la única fuente relevante de cómputo. El reporte de gprof le atribuye el 100\% del tiempo de ejecución, mientras que perf record indica que para $N=1024$ esta función concentra el 98.28\% de la actividad en el procesador, dejando apenas un 1.7\% restante a rutinas del programa como la inicialización y el llenado de matrices. Valgrind Cachegrind refuerza este resultado al asociarle el 98.5\% de las referencias de instrucción contabilizadas. Con esto podemos decir que todo el peso computacional recae sobre los tres bucles anidados del algoritmo, y cualquier optimización debe dirigirse exclusivamente a esa región.
 
-\begin{figure}[h]
+\begin{figure}[H]
 \centering
 \includegraphics[width=1\textwidth]{images/profiling/05_hotspots_largest_n.png}
 \caption{Distribución de tiempo e instrucciones en el hotspot principal durante el perfilado para el tamaño mayor ($N=1024$).}
@@ -369,13 +371,20 @@ Las herramientas de perfilado coinciden en señalar la función de multiplicaci�
 
 \subsubsection{Limitaciones de hardware}
 
-Las métricas recopiladas con perf stat muestran una caída sostenida del rendimiento a medida que crece el tamaño de la matriz, pasando de 5.53 GFLOPS para $N=128$ hasta 3.05 GFLOPS para $N=1024$.
+Las métricas recopiladas con perf stat muestran una caída sostenida del rendimiento a medida que crece el tamaño de la matriz, pasando de 5.53 GFLOPS para $N=128$ hasta 3.07 GFLOPS para $N=1024$.
 
-\begin{figure}[h]
+\begin{figure}[H]
 \centering
 \includegraphics[width=1\textwidth]{images/profiling/01_performance_summary.png}
 \caption{Resumen de rendimiento mostrando la caída progresiva de GFLOPS en función de los incrementos en tiempo y en la talla $N$.}
 \label{fig:prof_perf}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=1\textwidth]{images/profiling/02_miss_rates.png}
+\caption{Correlación de tasas de fallo, acentuando el incremento en la caché de datos de nivel 1 frente a la estabilidad del predictor de ramas y la dTLB.}
+\label{fig:prof_miss}
 \end{figure}
 
 Esta degradación tiene tres causas que se pudieron indentificar. La primera es la presión sobre la caché de nivel 1: cuando las matrices son pequeñas ($N=128$), los datos residen prácticamente en caché y la tasa de fallos en L1 es de apenas 2.21\%. Al escalar a $N=1024$, esa tasa asciende a 29.68\%, lo que refleja un patrón de acceso desfavorable. En C, los arreglos bidimensionales se almacenan en orden de filas, de modo que recorrer la segunda matriz por columnas, como exige el producto interior, genera accesos no contiguos en memoria y produce líneas de caché ineficientes.
@@ -383,13 +392,6 @@ Esta degradación tiene tres causas que se pudieron indentificar. La primera es 
 La segunda causa es la degradación del IPC. Para $N=128$, el procesador logra un IPC de 5.63, aprovechando el paralelismo a nivel de instrucción disponible cuando los datos están en caché. A medida que los fallos de L1 obligan a recurrir a niveles más lentos de la jerarquía de memoria, el pipeline queda en espera y el IPC cae a 2.61 para $N=1024$.
 
 El tercer aspecto relevante es la estabilidad de los demás contadores. Los fallos de predicción de ramas se mantienen por debajo del 0.2\% en todos los casos, lo cual es esperable dado el flujo de control regular de los bucles. Las presiones sobre la TLB tampoco representan un factor limitante, con tasas cercanas a cero en todos los tamaños evaluados. Esto confirma que la caché de datos de nivel 1 es el cuello de botella dominante.
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=1\textwidth]{images/profiling/02_miss_rates.png}
-\caption{Correlación de tasas de fallo, acentuando el incremento en la caché de datos de nivel 1 frente a la estabilidad del predictor de ramas y la dTLB.}
-\label{fig:prof_miss}
-\end{figure}
 
 \subsubsection{Uso de memoria dinámica}
 
@@ -399,7 +401,7 @@ El análisis con Valgrind Massif muestra que el consumo de heap escala de forma 
 
 La Figura~\ref{fig:prof_mem} presenta la distribución de los accesos de carga entre los niveles de la jerarquía de memoria, obtenida mediante \texttt{perf mem} con el mecanismo IBS (\textit{Instruction Based Sampling}) del procesador Ryzen 5 7600X. A diferencia de PEBS en arquitecturas Intel, IBS muestrea instrucciones en lugar de eventos de memoria directamente, lo que produce una fracción de muestras no clasificables reportadas como N/A, cuyo porcentaje se indica a la derecha de cada barra.
 
-\begin{figure}[h]
+\begin{figure}[H]
 \centering
 \includegraphics[width=0.9\textwidth]{images/profiling/06_mem_access_distribution.png}
 \caption{Distribución porcentual de accesos de carga clasificados por nivel de la jerarquía de memoria (perf mem / IBS). El porcentaje N/A indica muestras no clasificables por el mecanismo IBS de AMD Zen 4.}
@@ -408,4 +410,4 @@ La Figura~\ref{fig:prof_mem} presenta la distribución de los accesos de carga e
 
 Para los tamaños pequeños ($N=128$ y $N=256$), la totalidad de los accesos clasificados se sirve desde L1, lo que refleja que las matrices caben activamente en caché durante la ejecución y el hardware logra satisfacer la mayoría de las cargas sin escalar a niveles superiores. A partir de $N=512$ el comportamiento cambia: el 81.3\% de los accesos clasificados provienen de L2, y L1 retiene apenas el 18.7\% restante. Esta transición indica que las matrices superan la capacidad efectiva de la caché L1 y el hardware debe recurrir al siguiente nivel de la jerarquía para servir la mayor parte de las cargas.
 
-Para $N=1024$, el patrón se consolida con un 80.0\% de accesos desde L2, un 11.3\% que aún se resuelve en L1 y un 8.7\% que requiere L3. La ausencia de accesos a RAM principal en los accesos clasificados, combinada con el 14.1\% de N/A, es consistente con el comportamiento de IBS en Zen 4: los accesos con latencias muy altas tienen mayor probabilidad de quedar sin clasificar al no completarse dentro de la ventana de muestreo. El resultado central es que el grueso de las cargas del algoritmo de multiplicación de matrices recae sobre L2 para matrices medianas y grandes, lo que triangula con la tasa de L1 miss del 29.74\% reportada por \texttt{perf stat} para $N=1024$. Los accesos que fallan en L1 son servidos mayoritariamente desde L2, lo que implica latencias de entre 5 y 12 ciclos adicionales por acceso. Dado que el bucle interno ejecuta $n^2$ accesos sobre la segunda matriz con un patrón de stride columnar, esta penalidad acumulada explica directamente la caída del IPC de 5.63 a 2.61 observada al escalar de $N=128$ a $N=1024$.
+Para $N=1024$, el patrón se consolida con un 80.0\% de accesos desde L2, un 11.3\% que aún se resuelve en L1 y un 8.7\% que requiere L3. La ausencia de accesos a RAM principal en los accesos clasificados, combinada con el 14.1\% de N/A, es consistente con el comportamiento de IBS en Zen 4: los accesos con latencias muy altas tienen mayor probabilidad de quedar sin clasificar al no completarse dentro de la ventana de muestreo. El resultado central es que el grueso de las cargas del algoritmo de multiplicación de matrices recae sobre L2 para matrices medianas y grandes, lo que concuerda con la tasa de L1 miss del 29.68\% reportada por \texttt{perf stat} para $N=1024$. Los accesos que fallan en L1 son servidos mayoritariamente desde L2, lo que implica latencias de entre 5 y 12 ciclos adicionales por acceso. Dado que el bucle interno ejecuta $n^2$ accesos sobre la segunda matriz con un patrón de stride columnar, esta penalidad acumulada explica directamente la caída del IPC de 5.63 a 2.61 observada al escalar de $N=128$ a $N=1024$.

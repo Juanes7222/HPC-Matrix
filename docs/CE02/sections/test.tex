@@ -7,6 +7,19 @@
 
 En esta sección se presentan las pruebas realizadas para validar el funcionamiento del sistema desarrollado. Se describen los casos de prueba, los resultados obtenidos y las conclusiones derivadas de dichas pruebas. Se hace la comparación entre los resultados de las dos máquinas descritas anteriormente, con el fin de evaluar el rendimiento del sistema en diferentes entornos.
 
+Para las optimizaciones por compilador se usaron las banderas \texttt{-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer}.
+
+El signigicado de cada bandera es el siguiente:
+\begin{itemize}
+   \item \textbf{-O3:} Esta bandera habilita un nivel de optimización agresivo, permitiendo al compilador aplicar una amplia gama de técnicas para mejorar el rendimiento del código.
+   \item \textbf{-Wall:} Activa la mayoría de las advertencias del compilador, lo que ayuda a identificar posibles problemas en el código que podrían afectar su rendimiento o funcionalidad.
+   \item \textbf{-march=native:} Permite al compilador generar código optimizado para la arquitectura específica del procesador en el que se está compilando, aprovechando las características y capacidades de hardware disponibles.
+   \item \textbf{-funroll-loops:} Habilita el desenrollado de bucles, lo que puede mejorar el rendimiento al reducir la sobrecarga de control de bucle y aumentar la paralelización de las instrucciones.
+   \item \textbf{-flto:} Habilita la optimización a nivel de enlace, lo que permite al compilador realizar optimizaciones globales en todo el programa, incluso entre diferentes archivos de código fuente.
+   \item \textbf{-ffast-math:} Permite al compilador realizar optimizaciones agresivas en operaciones matemáticas, lo que puede mejorar el rendimiento a costa de la precisión en algunos casos como la evaluación de funciones trigonométricas.
+   \item \textbf{-fomit-frame-pointer:} Indica al compilador que no utilice un puntero de marco para las funciones, es decir, que no cree un marco de pila para cada función, lo que puede mejorar el rendimiento al reducir la cantidad de instrucciones necesarias para gestionar la pila de llamadas.
+\end{itemize}
+
 
 %================================
 \input{sections/test/openmp_noopt.tex}
@@ -14,4 +27,4 @@ En esta sección se presentan las pruebas realizadas para validar el funcionamie
 \input{sections/test/openmp_opt.tex}
 
 \input{sections/test/comparison.tex}
-\input{sections/test/scaling.tex}
+% \input{sections/test/scaling.tex}
