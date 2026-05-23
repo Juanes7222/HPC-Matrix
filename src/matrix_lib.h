@@ -56,6 +56,17 @@ void matrixMultiplyRangeWithTransposed(int** matrix1, int** matrix2, int** resul
                                        int n, int row_start, int row_end);
 
 /*
+ * Flat (contiguous row-major) variants of the range multiply functions.
+ * Element (i,j) is at m[i*n + j]. Intended for MPI and other callers that
+ * require a single contiguous allocation instead of int**.
+ */
+void matrixMultiplyRangeFlat(int *a, int *b, int *result,
+                              int n, int row_start, int row_end);
+
+void matrixMultiplyRangeWithTransposedFlat(int *a, int *b, int *result,
+                                           int n, int row_start, int row_end);
+
+/*
  * Returns wall time in milliseconds between t_start and t_end.
  * Intended for use with clock_gettime(CLOCK_MONOTONIC, ...).
  */
@@ -81,4 +92,4 @@ void printMatrix(int** matrix, int n);
  */
 int extractN(int argc, char *argv[]);
 
-#endif   
+#endif

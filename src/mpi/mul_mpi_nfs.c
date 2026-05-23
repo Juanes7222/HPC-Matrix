@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "matrix_io.h"
+#include "matrix_lib.h"
 
 /*
  * Fills rows_per_rank, sendcounts, and displs for MPI_Scatterv / MPI_Gatherv.
@@ -24,20 +25,6 @@ static void build_distribution(int n, int num_procs,
     displs[0] = 0;
     for (int r = 1; r < num_procs; r++)
         displs[r] = displs[r - 1] + sendcounts[r - 1];
-}
-
-/*
- * Multiplies local_rows rows of local_a by the full matrix b.
- * Loop order i-k-j gives better cache behaviour than i-j-k because the
- * innermost access to b[k*n + j] is sequential in memory.
- */
-static void multiply_rows(const int *local_a, const int *b, int *local_c,
-                           int local_rows, int n) {
-    memset(local_c, 0, (size_t)local_rows * n * sizeof(int));
-    for (int i = 0; i < local_rows; i++)
-        for (int k = 0; k < n; k++)
-            for (int j = 0; j < n; j++)
-                local_c[i * n + j] += local_a[i * n + k] * b[k * n + j];
 }
 
 int main(int argc, char *argv[]) {
@@ -131,7 +118,8 @@ int main(int argc, char *argv[]) {
     MPI_Barrier(MPI_COMM_WORLD);
     double t_compute_start = MPI_Wtime();
 
-    multiply_rows(local_a, b, local_c, local_rows, n);
+    memset(local_c, 0, (size_t)local_rows * n * sizeof(int));
+    matrixMultiplyRangeFlat(local_a, b, local_c, n, 0, local_rows);
 
     MPI_Barrier(MPI_COMM_WORLD);
     double t_compute_end = MPI_Wtime();

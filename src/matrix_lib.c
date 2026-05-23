@@ -116,6 +116,26 @@ void printMatrix(int** matrix, int n) {
 }
 
 
+void matrixMultiplyRangeFlat(int *a, int *b, int *result,
+                              int n, int row_start, int row_end) {
+    for (int i = row_start; i < row_end; i++)
+        for (int k = 0; k < n; k++)
+            for (int j = 0; j < n; j++)
+                result[i * n + j] += a[i * n + k] * b[k * n + j];
+}
+
+
+void matrixMultiplyRangeWithTransposedFlat(int *a, int *b, int *result,
+                                           int n, int row_start, int row_end) {
+    /* b is expected to be the transpose: b[j*n + k] = original[k*n + j].
+     * The inner loop accesses b[j*n + k] sequentially, improving cache use. */
+    for (int i = row_start; i < row_end; i++)
+        for (int j = 0; j < n; j++)
+            for (int k = 0; k < n; k++)
+                result[i * n + j] += a[i * n + k] * b[j * n + k];
+}
+
+
 int extractN(int argc, char *argv[]) {
     if (argc < 2) {
         fprintf(stderr, "Use: %s <N>\n", argv[0]);
