@@ -37,5 +37,9 @@ int matrix_write_bin(const char *path, const int *m, int n) {
              (fwrite(m, sizeof(int), (size_t)n * n, f) == (size_t)n * n);
 
     fclose(f);
-    return ok ? 0 : -1;
+    if (!ok) {
+        fprintf(stderr, "%s: error writing matrix data\n", path);
+        return -1;
+    }
+    return 0;
 }

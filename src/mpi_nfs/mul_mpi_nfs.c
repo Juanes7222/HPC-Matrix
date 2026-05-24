@@ -37,11 +37,15 @@ int main(int argc, char *argv[]) {
     if (argc != 4) {
         if (rank == 0)
             fprintf(stderr, "Usage: %s <A.bin> <B.bin> <C.bin>\n", argv[0]);
-        MPI_Abort(MPI_COMM_WORLD, 1);
+        MPI_Finalize();
+        return EXIT_FAILURE;
     }
 
     /* ------------------------------------------------------------------ */
     /* I/O phase: rank 0 reads A; all ranks read B independently from NFS */
+    /* NOTE: t_io includes the MPI_Bcast below (initial sync of N).       */
+    /* Separating it further would add a barrier/timer pair for a single  */
+    /* int transfer; the overhead is negligible relative to disk I/O.     */
     /* ------------------------------------------------------------------ */
     MPI_Barrier(MPI_COMM_WORLD);
     double t_total_start = MPI_Wtime();
@@ -61,6 +65,8 @@ int main(int argc, char *argv[]) {
     /* Broadcast N so all ranks can validate B and allocate memory. */
     MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
+    /* All ranks read B from NFS into local memory. Rank 0 reads it too;
+     * NFS serves as the distribution mechanism so no broadcast is needed. */
     int *b  = NULL;
     int n_b = matrix_read_bin(argv[2], &b);
     if (n_b < 0) {
@@ -146,8 +152,6 @@ int main(int argc, char *argv[]) {
     MPI_Barrier(MPI_COMM_WORLD);
     double t_gather_end = MPI_Wtime();
 
-    double t_total_end = t_gather_end;
-
     /* ------------------------------------------------------------------ */
     /* Write result                                                         */
     /* ------------------------------------------------------------------ */
@@ -156,6 +160,10 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "rank 0: error writing C to %s\n", argv[3]);
         free(c_full);
     }
+
+    /* t_total_end is captured after the write so it reflects true
+     * end-to-end wall time including output persistence. */
+    double t_total_end = MPI_Wtime();
 
     /* ------------------------------------------------------------------ */
     /* Timing report: max across all ranks to reflect the slowest process  */
