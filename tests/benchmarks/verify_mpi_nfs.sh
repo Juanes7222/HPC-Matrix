@@ -20,12 +20,15 @@ cd "$(dirname "$0")/../.."
 #   MPI_HOSTFILE   Path to hostfile. Omit flag if not set.
 # ---------------------------------------------------------------------------
 
-BIN_DIR="bin"
-TMP_DIR="/tmp/verify_mpi_nfs_$$"
+NFS_ROOT="/mnt/share"
+LOCAL_BIN_DIR="bin"
+TMP_DIR="${NFS_ROOT}/tmp/verify_mpi_nfs_$$"
 
-GEN="${BIN_DIR}/gen_matrix"
-MPI_BIN="${BIN_DIR}/mul_mpi_nfs_noopt"
-VERIFY="${BIN_DIR}/verify_mpi"
+# gen_matrix and verify_mpi run locally on the master node.
+# mul_mpi_nfs must be on NFS so all ranks can find it at the same path.
+GEN="${LOCAL_BIN_DIR}/gen_matrix"
+MPI_BIN="${NFS_ROOT}/bin/mul_mpi_nfs_noopt"
+VERIFY="${LOCAL_BIN_DIR}/verify_mpi"
 
 RED='\033[0;31m'
 GRN='\033[0;32m'

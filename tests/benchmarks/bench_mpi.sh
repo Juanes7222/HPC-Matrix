@@ -46,10 +46,11 @@ MACHINE_FLAG="$1"
 shift
 EXPLICIT_PROCS=("$@")
 
-BIN_DIR="bin"
-BASE_DIR="tests/benchmarks/${MACHINE_FLAG}"
-RESULTS_DIR="${BASE_DIR}/results_mpi_nfs"
-DATA_DIR="${MPI_DATA_DIR:-${BASE_DIR}/data_mpi}"
+NFS_ROOT="/mnt/share"
+LOCAL_BIN_DIR="bin"
+NFS_BIN_DIR="${NFS_ROOT}/bin"
+DATA_DIR="${MPI_DATA_DIR:-${NFS_ROOT}/data/input}"
+RESULTS_DIR="${NFS_ROOT}/results/mpi_nfs/${MACHINE_FLAG}"
 HOSTFILE="${MPI_HOSTFILE:-${HOME}/mpi_hostfile}"
 MATRIX_SIZES=(400 800 1600 3200 6400)
 REPETITIONS=10
@@ -59,10 +60,12 @@ BEST_FLAGS="-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-poin
 
 if [[ "${BEST_CONFIG}" == true ]]; then
     ACTIVE_FLAGS="${BEST_FLAGS}"
-    BIN_MPI="${BIN_DIR}/mul_mpi_nfs_opt"
+    LOCAL_BIN_MPI="${LOCAL_BIN_DIR}/mul_mpi_nfs_opt"
+    NFS_BIN_MPI="${NFS_BIN_DIR}/mul_mpi_nfs_opt"
 else
     ACTIVE_FLAGS="${NORMAL_FLAGS}"
-    BIN_MPI="${BIN_DIR}/mul_mpi_nfs_noopt"
+    LOCAL_BIN_MPI="${LOCAL_BIN_DIR}/mul_mpi_nfs_noopt"
+    NFS_BIN_MPI="${NFS_BIN_DIR}/mul_mpi_nfs_noopt"
 fi
 
 CSV_HEADER="machine,impl,flags,processes,matrix_size,repetition,io_ms,scatter_ms,compute_ms,gather_ms,total_ms"
@@ -104,17 +107,19 @@ compile_mpi() {
         return 1
     fi
 
-    if [[ -x "${BIN_MPI}" && "${BIN_MPI}" -nt "${SRC_MPI}" ]]; then
-        log_info "Already up-to-date: ${BIN_MPI}"
+    if [[ -x "${NFS_BIN_MPI}" && "${NFS_BIN_MPI}" -nt "${SRC_MPI}" ]]; then
+        log_info "Already up-to-date: ${NFS_BIN_MPI}"
         return 0
     fi
 
     local flags_clean
     flags_clean=$(echo "${ACTIVE_FLAGS}" | tr -s ' ' | xargs)
-    log_info "Compiling ${BIN_MPI} via Makefile (flags: ${flags_clean:-none})"
+    log_info "Compiling ${LOCAL_BIN_MPI} via Makefile (flags: ${flags_clean:-none})"
 
-    if make -B "${BIN_MPI}" OPT_FLAGS="${flags_clean}" >/dev/null 2>&1; then
-        log_ok "Binary: ${BIN_MPI}"
+    if make -B "${LOCAL_BIN_MPI}" OPT_FLAGS="${flags_clean}" >/dev/null 2>&1; then
+        log_info "Deploying to ${NFS_BIN_DIR}/"
+        cp "${LOCAL_BIN_MPI}" "${NFS_BIN_DIR}/"
+        log_ok "Binary ready: ${NFS_BIN_MPI}"
     else
         log_error "Compilation failed: ${SRC_MPI}"
         return 1
@@ -126,11 +131,11 @@ compile_mpi() {
 # ---------------------------------------------------------------------------
 
 ensure_matrices() {
-    local gen_bin="${BIN_DIR}/gen_matrix"
+    local gen_bin="${LOCAL_BIN_DIR}/gen_matrix"
 
     if [[ ! -x "${gen_bin}" ]]; then
         log_info "Compiling gen_matrix..."
-        if ! make -B "${gen_bin}" >/dev/null 2>&1; then
+        if ! make -B "bin/gen_matrix" >/dev/null 2>&1; then
             log_error "Cannot compile gen_matrix"
             return 1
         fi
@@ -188,7 +193,7 @@ run_single() {
     local bin="$1" size="$2" procs="$3"
     local a="${DATA_DIR}/A_${size}.bin"
     local b="${DATA_DIR}/B_${size}.bin"
-    local c="${DATA_DIR}/C_${size}_p${procs}.bin"
+    local c="${NFS_ROOT}/tmp/C_${size}_p${procs}.bin"
     local output exit_code=0
 
     local mpirun_args=(-np "${procs}")
@@ -234,7 +239,7 @@ run_benchmark() {
 
                 printf "  rep=%-2s  size=%-6s  procs=%-3s  " \
                     "${rep}" "${size}" "${procs}"
-                run_single "${BIN_MPI}" "${size}" "${procs}"
+                run_single "${NFS_BIN_MPI}" "${size}" "${procs}"
                 printf "compute=%-10s total=%s ms\n" \
                     "${COMPUTE_MS}" "${TOTAL_MS}"
                 write_row "${csv}" "${MACHINE_FLAG}" "${procs}" "${size}" "${rep}"
@@ -393,7 +398,7 @@ print_banner() {
 }
 
 main() {
-    mkdir -p "${RESULTS_DIR}" "${BIN_DIR}"
+    mkdir -p "${RESULTS_DIR}" "${LOCAL_BIN_DIR}" "${NFS_BIN_DIR}" "${NFS_ROOT}/tmp"
 
     ensure_matrices
     optimize_system
@@ -401,9 +406,6 @@ main() {
     compile_mpi
     run_benchmark
     print_summary
-
-    cp "${RESULTS_DIR}/data_mpi_nfs.csv" \
-       "${BASE_DIR}/results_final/" 2>/dev/null || true
 }
 
 if [[ -z "${INHIBITED:-}" ]]; then
