@@ -32,7 +32,7 @@ VERIFY_MPI    = $(BIN_DIR)/verify_mpi
 
 # MPI targets are excluded from all: they require mpicc and a cluster setup.
 # The benchmark script requests them explicitly via: make -B <target> OPT_FLAGS=...
-all: setup $(SEQ) $(SEQ_CACHE) $(THREADS) $(PROCESSES) $(OMP_OPT) $(OMP_NOOPT) $(VERIFY)
+all: setup $(SEQ) $(SEQ_CACHE) $(THREADS) $(PROCESSES) $(OMP_OPT) $(OMP_NOOPT) $(VERIFY) $(VERIFY_MPI) $(GEN_MATRIX)
 
 setup:
 	@mkdir -p $(BIN_DIR)
