@@ -28,6 +28,7 @@ MPI_NFS_OPT   = $(BIN_DIR)/mul_mpi_nfs_opt
 MPI_NFS_NOOPT = $(BIN_DIR)/mul_mpi_nfs_noopt
 GEN_MATRIX    = $(BIN_DIR)/gen_matrix
 VERIFY        = $(BIN_DIR)/verify_mul
+VERIFY_MPI    = $(BIN_DIR)/verify_mpi
 
 # MPI targets are excluded from all: they require mpicc and a cluster setup.
 # The benchmark script requests them explicitly via: make -B <target> OPT_FLAGS=...
@@ -71,6 +72,9 @@ $(GEN_MATRIX): $(SRC_DIR)/mpi_nfs/gen_matrix.c $(MATRIX_IO_OBJ)
 
 $(VERIFY): $(TESTS_DIR)/correctness/verify_mul.c $(LIB_OBJ)
 	$(CC) $(CFLAGS) $(OPT_FLAGS) $^ -o $@
+
+$(VERIFY_MPI): $(TESTS_DIR)/correctness/verify_mpi.c $(MATRIX_IO_OBJ) $(LIB_OBJ)
+	$(CC) $(CFLAGS) -I$(SRC_DIR)/mpi_nfs $(OPT_FLAGS) $^ -o $@
 
 clean:
 	rm -rf $(BIN_DIR)/*.o $(BIN_DIR)/*
