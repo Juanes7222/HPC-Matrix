@@ -20,7 +20,7 @@ cd "$(dirname "$0")/../.."
 #   MPI_HOSTFILE   Path to hostfile. Omit flag if not set.
 # ---------------------------------------------------------------------------
 
-NFS_ROOT="/mnt/share"
+NFS_ROOT="/mnt/share/hpc-matrix"
 LOCAL_BIN_DIR="bin"
 TMP_DIR="${NFS_ROOT}/tmp/verify_mpi_nfs_$$"
 
