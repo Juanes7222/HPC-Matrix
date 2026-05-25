@@ -199,10 +199,9 @@ run_single() {
     local mpirun_args=(-np "${procs}")
     [[ -f "${HOSTFILE}" ]] && mpirun_args+=(--hostfile "${HOSTFILE}")
 
-    output=$(mpirun "${mpirun_args[@]}" "${bin}" "${a}" "${b}" "${c}" \
-             2>/dev/null) || exit_code=$?
-
+    output=$(mpirun "${mpirun_args[@]}" "${bin}" "${a}" "${b}" "${c}" 2>&1) || exit_code=$?
     if [[ -z "${output}" || "${exit_code}" -ne 0 ]]; then
+        echo "${output}" | tail -20
         zero_phases
         return
     fi
