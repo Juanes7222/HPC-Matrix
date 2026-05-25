@@ -17,18 +17,18 @@ cd "$(dirname "$0")/../.."
 #   Default process counts: 1 2 3
 #
 # Environment variables:
-#   MPI_HOSTFILE   Path to hostfile. Omit flag if not set.
+#   MPI_HOSTFILE   Path to hostfile (default: ~/mpi_hostfile if it exists).
 # ---------------------------------------------------------------------------
 
 NFS_ROOT="/mnt/share/hpc-matrix"
-LOCAL_BIN_DIR="bin"
-TMP_DIR="${NFS_ROOT}/tmp/verify_mpi_nfs_$$"
 
-# gen_matrix and verify_mpi run locally on the master node.
-# mul_mpi_nfs must be on NFS so all ranks can find it at the same path.
-GEN="${LOCAL_BIN_DIR}/gen_matrix"
+# gen_matrix and verify_mpi run on the master; mul_mpi_nfs runs via mpirun.
+# All three binaries live on NFS so every node resolves the same path.
+GEN="${NFS_ROOT}/bin/gen_matrix"
 MPI_BIN="${NFS_ROOT}/bin/mul_mpi_nfs_noopt"
-VERIFY="${LOCAL_BIN_DIR}/verify_mpi"
+VERIFY="bin/verify_mpi"
+
+TMP_DIR="${NFS_ROOT}/tmp/verify_mpi_nfs_$$"
 
 RED='\033[0;31m'
 GRN='\033[0;32m'
@@ -44,20 +44,78 @@ SKIP_COUNT=0
 # Helpers
 # ---------------------------------------------------------------------------
 
-die() { echo -e "${RED}ERROR: $*${RST}" >&2 ; exit 1 ; }
+die() { echo -e "${RED}ERROR: $*${RST}" >&2; exit 1; }
 
 check_binaries() {
     for bin in "${GEN}" "${MPI_BIN}" "${VERIFY}"; do
-        [[ -x "${bin}" ]] || die "${bin} not found. Run: make ${bin}"
+        [[ -x "${bin}" ]] || die "${bin} not found or not executable"
     done
 }
 
-build_mpirun_cmd() {
+# Fills the MPI_ARGS array for the given process count.
+# Avoids the fragility of building and word-splitting a command string.
+build_mpi_args() {
     local procs="$1"
-    local args=(-np "${procs}")
-    [[ -n "${MPI_HOSTFILE:-}" && -f "${MPI_HOSTFILE}" ]] && \
-        args+=(--hostfile "${MPI_HOSTFILE}")
-    echo "mpirun ${args[*]}"
+    MPI_ARGS=(-np "${procs}")
+
+    local hostfile="${MPI_HOSTFILE:-${HOME}/mpi_hostfile}"
+    [[ -f "${hostfile}" ]] && MPI_ARGS+=(--hostfile "${hostfile}")
+}
+
+# Runs a command via mpirun and captures its stderr into MPI_STDERR.
+# Sets MPI_EXIT to the exit code.
+run_mpi() {
+    local err_file
+    err_file=$(mktemp)
+
+    MPI_EXIT=0
+    mpirun "${MPI_ARGS[@]}" "$@" >/dev/null 2>"${err_file}" || MPI_EXIT=$?
+
+    MPI_STDERR=$(cat "${err_file}")
+    rm -f "${err_file}"
+}
+
+preflight_check() {
+    echo -e "${BOLD}Pre-flight checks${RST}"
+
+    # NFS tmp must be writable
+    local probe="${NFS_ROOT}/tmp/.preflight_$$"
+    if ! touch "${probe}" 2>/dev/null; then
+        echo -e "  ${RED}[FAIL]${RST} Cannot write to ${NFS_ROOT}/tmp/"
+        echo "  Fix: sudo chown \$(whoami) ${NFS_ROOT}/tmp"
+        die "NFS tmp not writable"
+    fi
+    rm -f "${probe}"
+    echo -e "  ${GRN}[OK]${RST} NFS tmp writable"
+
+    # gen_matrix must produce a file on NFS
+    local probe_mat="${NFS_ROOT}/tmp/.preflight_matrix_$$.bin"
+    local gen_err
+    gen_err=$(mktemp)
+    if ! "${GEN}" 4 "${probe_mat}" 2>"${gen_err}"; then
+        echo -e "  ${RED}[FAIL]${RST} gen_matrix cannot write to NFS:"
+        sed 's/^/    /' "${gen_err}"
+        rm -f "${gen_err}" "${probe_mat}"
+        die "gen_matrix write failed"
+    fi
+    rm -f "${gen_err}" "${probe_mat}"
+    echo -e "  ${GRN}[OK]${RST} gen_matrix writes to NFS"
+
+    # mpirun must launch at least one process
+    build_mpi_args 1
+    run_mpi true
+    if [[ "${MPI_EXIT}" -ne 0 ]]; then
+        echo -e "  ${RED}[FAIL]${RST} mpirun -np 1 true:"
+        echo "${MPI_STDERR}" | head -5 | sed 's/^/    /'
+        echo ""
+        echo "  Possible causes:"
+        echo "    - mpirun not installed (apt install openmpi-bin)"
+        echo "    - SSH keys not configured between nodes"
+        echo "    - Set MPI_HOSTFILE env var to your hostfile path"
+        die "MPI environment not functional"
+    fi
+    echo -e "  ${GRN}[OK]${RST} mpirun -np 1 true"
+    echo ""
 }
 
 run_case() {
@@ -66,28 +124,38 @@ run_case() {
     local b="${TMP_DIR}/B_${n}.bin"
     local c="${TMP_DIR}/C_${n}_p${procs}.bin"
 
-    printf "  %-40s" "${desc}"
+    printf "  %-42s" "${desc}"
 
-    # Matrices are shared across process counts for the same N; generate once.
-    [[ -f "${a}" ]] || "${GEN}" "${n}" "${a}" 2>/dev/null
-    [[ -f "${b}" ]] || "${GEN}" "${n}" "${b}" 2>/dev/null
+    # Matrices for the same N are shared across process counts; generate once.
+    local gen_err
+    gen_err=$(mktemp)
+    if [[ ! -f "${a}" ]]; then
+        if ! "${GEN}" "${n}" "${a}" 2>"${gen_err}"; then
+            echo -e "${YEL}SKIP${RST}  gen_matrix failed: $(head -1 "${gen_err}")"
+            rm -f "${gen_err}"; (( SKIP_COUNT++ )) || true; return
+        fi
+    fi
+    if [[ ! -f "${b}" ]]; then
+        if ! "${GEN}" "${n}" "${b}" 2>"${gen_err}"; then
+            echo -e "${YEL}SKIP${RST}  gen_matrix failed: $(head -1 "${gen_err}")"
+            rm -f "${gen_err}"; (( SKIP_COUNT++ )) || true; return
+        fi
+    fi
+    rm -f "${gen_err}"
 
-    local mpirun_cmd
-    mpirun_cmd=$(build_mpirun_cmd "${procs}")
+    build_mpi_args "${procs}"
+    run_mpi "${MPI_BIN}" "${a}" "${b}" "${c}"
 
-    local exit_code=0
-    ${mpirun_cmd} "${MPI_BIN}" "${a}" "${b}" "${c}" >/dev/null 2>&1 \
-        || exit_code=$?
-
-    if [[ "${exit_code}" -ne 0 ]]; then
-        echo -e "${YEL}SKIP${RST}  (mpirun failed, check hostfile/cluster)"
+    if [[ "${MPI_EXIT}" -ne 0 ]]; then
+        local first_err
+        first_err=$(echo "${MPI_STDERR}" | grep -v '^$' | grep -v '^-' | head -1)
+        echo -e "${YEL}SKIP${RST}  ${first_err}"
         (( SKIP_COUNT++ )) || true
         return
     fi
 
-    local result
-    result=$("${VERIFY}" "${a}" "${b}" "${c}" 2>&1)
-    local verify_exit=$?
+    local result verify_exit=0
+    result=$("${VERIFY}" "${a}" "${b}" "${c}" 2>&1) || verify_exit=$?
 
     if [[ "${verify_exit}" -eq 0 ]]; then
         echo -e "${GRN}${result}${RST}"
@@ -105,7 +173,6 @@ run_case() {
 run_all() {
     local proc_list=("$@")
 
-    echo ""
     echo -e "${BOLD}Category 1 — single process (P=1 baseline)${RST}"
     run_case "N=8   P=1" 8 1
     run_case "N=64  P=1" 64 1
@@ -132,7 +199,8 @@ run_all() {
     echo -e "${BOLD}Category 4 — more processes than rows (N < P)${RST}"
     for p in "${proc_list[@]}"; do
         [[ "${p}" -le 2 ]] && continue
-        run_case "N=2   P=${p}  (some ranks get 0 rows)" 2 "${p}"
+        run_case "N=2   P=${p}  (some ranks idle)" 2 "${p}"
+        run_case "N=1   P=${p}  (only rank 0 works)" 1 "${p}"
     done
 }
 
@@ -159,6 +227,7 @@ echo "   Date    : $(date '+%Y-%m-%d %H:%M:%S')"
 echo "============================================================"
 echo -e "${RST}"
 
+preflight_check
 run_all "${PROC_LIST[@]}"
 
 echo ""
