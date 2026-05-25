@@ -20,7 +20,7 @@ cd "$(dirname "$0")/../.."
 #   MPI_HOSTFILE   Path to hostfile (default: ~/mpi_hostfile if it exists).
 # ---------------------------------------------------------------------------
 
-NFS_ROOT="/srv/nfs/share/hpc-matrix"
+NFS_ROOT="/srv/nfs/hpc-matrix"
 
 # gen_matrix and verify_mpi run on the master; mul_mpi_nfs runs via mpirun.
 # All three binaries live on NFS so every node resolves the same path.
