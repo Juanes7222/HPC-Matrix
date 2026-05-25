@@ -30,55 +30,55 @@ VERIFY        = $(BIN_DIR)/verify_mul
 VERIFY_MPI    = $(BIN_DIR)/verify_mpi
 
 all: setup \
-     $(SEQ) $(SEQ_CACHE) $(THREADS) $(PROCESSES) \
-     $(OMP_OPT) $(OMP_NOOPT) \
-     $(MPI_NFS_OPT) $(MPI_NFS_NOOPT) \
-     $(GEN_MATRIX) $(VERIFY) $(VERIFY_MPI)
+	$(SEQ) $(SEQ_CACHE) $(THREADS) $(PROCESSES) \
+	$(OMP_OPT) $(OMP_NOOPT) \
+	$(MPI_NFS_OPT) $(MPI_NFS_NOOPT) \
+	$(GEN_MATRIX) $(VERIFY) $(VERIFY_MPI)
 
 setup: 
 	@mkdir -p $(BIN_DIR)
 
 $(LIB_OBJ_OPT): $(LIB_SRC)
-    $(CC) $(CFLAGS) $(OPT_FLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(OPT_FLAGS) -c $< -o $@
 
 $(LIB_OBJ_NOOPT): $(LIB_SRC)
-    $(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 $(MATRIX_IO_OBJ): $(MATRIX_IO_SRC)
-    $(CC) $(CFLAGS) -I$(SRC_DIR)/mpi_nfs $(OPT_FLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -I$(SRC_DIR)/mpi_nfs $(OPT_FLAGS) -c $< -o $@
 
 $(SEQ): $(SRC_DIR)/sequential/mul_seq.c $(LIB_OBJ_OPT)
-    $(CC) $(CFLAGS) $(OPT_FLAGS) $^ -o $@
+	$(CC) $(CFLAGS) $(OPT_FLAGS) $^ -o $@
 
 $(SEQ_CACHE): $(SRC_DIR)/sequential/mul_seq_cache.c $(LIB_OBJ_OPT)
-    $(CC) $(CFLAGS) $(OPT_FLAGS) $^ -o $@
+	$(CC) $(CFLAGS) $(OPT_FLAGS) $^ -o $@
 
 $(THREADS): $(SRC_DIR)/threads/mul_threads.c $(LIB_OBJ_OPT)
-    $(CC) $(CFLAGS) $(OPT_FLAGS) $(PTHREAD_FLAGS) $^ -o $@
+	$(CC) $(CFLAGS) $(OPT_FLAGS) $(PTHREAD_FLAGS) $^ -o $@
 
 $(PROCESSES): $(SRC_DIR)/processes/mul_conc.c $(LIB_OBJ_OPT)
-    $(CC) $(CFLAGS) $(OPT_FLAGS) $^ -o $@
+	$(CC) $(CFLAGS) $(OPT_FLAGS) $^ -o $@
 
 $(OMP_OPT): $(SRC_DIR)/openmp/mul_openmp.c $(LIB_OBJ_OPT)
-    $(CC) $(CFLAGS) $(OPT_FLAGS) $(OMP_FLAGS) $^ -o $@
+	$(CC) $(CFLAGS) $(OPT_FLAGS) $(OMP_FLAGS) $^ -o $@
 
 $(OMP_NOOPT): $(SRC_DIR)/openmp/mul_openmp.c $(LIB_OBJ_NOOPT)
-    $(CC) $(CFLAGS) $(OMP_FLAGS) $^ -o $@
+	$(CC) $(CFLAGS) $(OMP_FLAGS) $^ -o $@
 
 $(MPI_NFS_OPT): $(SRC_DIR)/mpi_nfs/mul_mpi_nfs.c $(MATRIX_IO_OBJ) $(LIB_OBJ_OPT)
-    $(MPICC) $(CFLAGS) -I$(SRC_DIR)/mpi_nfs $(OPT_FLAGS) $^ -o $@
+	$(MPICC) $(CFLAGS) -I$(SRC_DIR)/mpi_nfs $(OPT_FLAGS) $^ -o $@
 
 $(MPI_NFS_NOOPT): $(SRC_DIR)/mpi_nfs/mul_mpi_nfs.c $(MATRIX_IO_OBJ) $(LIB_OBJ_NOOPT)
-    $(MPICC) $(CFLAGS) -I$(SRC_DIR)/mpi_nfs $^ -o $@
+	$(MPICC) $(CFLAGS) -I$(SRC_DIR)/mpi_nfs $^ -o $@
 
 $(GEN_MATRIX): $(SRC_DIR)/mpi_nfs/gen_matrix.c $(MATRIX_IO_OBJ)
-    $(CC) $(CFLAGS) -I$(SRC_DIR)/mpi_nfs $(OPT_FLAGS) $^ -o $@
+	$(CC) $(CFLAGS) -I$(SRC_DIR)/mpi_nfs $(OPT_FLAGS) $^ -o $@
 
 $(VERIFY): $(TESTS_DIR)/correctness/verify_mul.c $(LIB_OBJ_OPT)
-    $(CC) $(CFLAGS) $(OPT_FLAGS) $^ -o $@
+	$(CC) $(CFLAGS) $(OPT_FLAGS) $^ -o $@
 
 $(VERIFY_MPI): $(TESTS_DIR)/correctness/verify_mpi.c $(MATRIX_IO_OBJ) $(LIB_OBJ_OPT)
-    $(CC) $(CFLAGS) -I$(SRC_DIR)/mpi_nfs $(OPT_FLAGS) $^ -o $@
+	$(CC) $(CFLAGS) -I$(SRC_DIR)/mpi_nfs $(OPT_FLAGS) $^ -o $@
 
 deploy: $(MPI_NFS_OPT) $(MPI_NFS_NOOPT) $(GEN_MATRIX)
 	@echo "Deploying to $(NFS_DIR)"
