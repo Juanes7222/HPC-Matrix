@@ -409,12 +409,16 @@ main() {
 
 if [[ -z "${INHIBITED:-}" ]]; then
     export INHIBITED=1
-    exec systemd-inhibit \
-        --what=idle:sleep \
-        --who="bench_mpi_nfs" \
-        --why="MPI+NFS benchmark running" \
-        --mode=block \
-        bash "$0" "${ORIGINAL_ARGS[@]}"
+    if command -v systemd-inhibit >/dev/null 2>&1; then
+        systemd-inhibit \
+            --what=idle:sleep \
+            --who="bench_mpi_nfs" \
+            --why="MPI+NFS benchmark running" \
+            --mode=block \
+            bash "$0" "${ORIGINAL_ARGS[@]}" || main
+    else
+        main
+    fi
+else
+    main
 fi
-
-main
