@@ -35,8 +35,8 @@ all: setup \
      $(MPI_NFS_OPT) $(MPI_NFS_NOOPT) \
      $(GEN_MATRIX) $(VERIFY) $(VERIFY_MPI)
 
-setup:
-    @mkdir -p $(BIN_DIR)
+setup: 
+	@mkdir -p $(BIN_DIR)
 
 $(LIB_OBJ_OPT): $(LIB_SRC)
     $(CC) $(CFLAGS) $(OPT_FLAGS) -c $< -o $@
@@ -81,13 +81,13 @@ $(VERIFY_MPI): $(TESTS_DIR)/correctness/verify_mpi.c $(MATRIX_IO_OBJ) $(LIB_OBJ_
     $(CC) $(CFLAGS) -I$(SRC_DIR)/mpi_nfs $(OPT_FLAGS) $^ -o $@
 
 deploy: $(MPI_NFS_OPT) $(MPI_NFS_NOOPT) $(GEN_MATRIX)
-    @echo "Deploying to $(NFS_DIR)"
-    @mkdir -p $(NFS_DIR)/bin $(NFS_DIR)/data/input $(NFS_DIR)/results/csv \
-              $(NFS_DIR)/results/logs $(NFS_DIR)/results/raw $(NFS_DIR)/tmp
-    @cp $(MPI_NFS_OPT)   $(NFS_DIR)/bin/
-    @cp $(MPI_NFS_NOOPT) $(NFS_DIR)/bin/
-    @cp $(GEN_MATRIX)    $(NFS_DIR)/bin/
-    @echo "Done -> $(NFS_DIR)/bin"
+	@echo "Deploying to $(NFS_DIR)"
+	@mkdir -p $(NFS_DIR)/bin $(NFS_DIR)/data/input $(NFS_DIR)/results/csv \
+				$(NFS_DIR)/results/logs $(NFS_DIR)/results/raw $(NFS_DIR)/tmp
+	@cp $(MPI_NFS_OPT)   $(NFS_DIR)/bin/
+	@cp $(MPI_NFS_NOOPT) $(NFS_DIR)/bin/
+	@cp $(GEN_MATRIX)    $(NFS_DIR)/bin/
+	@echo "Done -> $(NFS_DIR)/bin"
 
 clean:
-    rm -rf $(BIN_DIR)
+	rm -rf $(BIN_DIR)
