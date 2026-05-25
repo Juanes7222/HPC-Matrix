@@ -4,7 +4,7 @@ CFLAGS   = -Wall -Wextra -I./src
 OPT_FLAGS     = -O3 -march=native
 PTHREAD_FLAGS = -pthread
 OMP_FLAGS     = -fopenmp
-NFS_DIR       = /mnt/share/hpc-matrix
+NFS_DIR       = /srv/nfs/share/hpc-matrix
 
 SRC_DIR  = src
 BIN_DIR  = bin
