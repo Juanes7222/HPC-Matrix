@@ -46,7 +46,7 @@ MACHINE_FLAG="$1"
 shift
 EXPLICIT_PROCS=("$@")
 
-NFS_ROOT="/mnt/share"
+NFS_ROOT="/srv/nfs/hpc-matrix"
 LOCAL_BIN_DIR="bin"
 NFS_BIN_DIR="${NFS_ROOT}/bin"
 DATA_DIR="${MPI_DATA_DIR:-${NFS_ROOT}/data/input}"
