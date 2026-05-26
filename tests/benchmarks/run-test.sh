@@ -1,25 +1,25 @@
 #!/usr/bin/env bash
 # =============================================================================
-# bench_final.sh  --  Final benchmark: three experimental suites
+# bench_final.sh  --  Final benchmark with CLI options
 #
-# Suite 1 - compiler   : seq+O3_full  vs  threads(2,4,6,8,12)+noopt  vs  conc+noopt
-#           Main question: can compiler optimization alone beat parallelism?
+# Features:
+#   --suite|-s        compiler|cache|mixed|all
+#   --compiler|-c     gcc|clang|... or full compiler command
+#   --impl|-i         Comma-separated implementations to run:
+#                     seq_std,seq_cache,threads,conc
+#   --flags|-f        best|noopt|both
+#   --reps|-r         Number of repetitions
+#   --sizes|-n        Comma-separated matrix sizes
+#   --threads|-t      Comma-separated thread counts for threaded runs
+#   --cpu-single      CPU core for sequential/process runs
+#   --cpu-set         CPU set for threaded runs
+#   --no-optimize     Skip optimize_system / restore_system hooks
+#   --help            Show usage
 #
-# Suite 2 - cache      : seq_std+noopt  vs  seq_cache+noopt
-#           Isolates the cache line (transposed matrix) effect.
-#
-# Suite 3 - mixed      : seq_cache+O3_full  vs  threads(Nt)+O3_full  vs  conc+O3_full
-#           Both optimizations combined: best vs best.
-#
-# Usage:
-#   ./bench_final.sh [compiler|cache|mixed|all]
-#   Defaults to: all
-#
-# Output:
-#   results_final/data_<suite>.csv
-#   results_final/summary_<suite>.txt
-#
-# Requires: bench_utils.sh in the same directory.
+# Examples:
+#   ./bench_final.sh --suite compiler --compiler gcc --flags best
+#   ./bench_final.sh --suite mixed --impl seq_cache,threads --flags both
+#   ./bench_final.sh -s all -c clang -i threads,conc -f noopt -r 5
 # =============================================================================
 
 set -euo pipefail
@@ -30,36 +30,89 @@ cd "$(dirname "$0")/../.."
 # shellcheck source=tests/benchmarks/bench_utils.sh
 source "tests/benchmarks/bench_utils.sh"
 
-
+# -----------------------------------------------------------------------------
+# Defaults
+# -----------------------------------------------------------------------------
 BIN_DIR="bin"
-RESULTS_DIR="tests/benchmarks/machine1/results_final"
+MACHINE_NAME="machine1"
+RESULTS_DIR="tests/benchmarks/${MACHINE_NAME}/results_final"
 
-MATRIX_SIZES=(400 800 1600 3200 6400)
+SUITE="all"
+COMPILER_CMD="gcc"
+RUN_IMPLS_CSV=""
+RUN_FLAGS_MODE="suite"   # suite|best|noopt|both
 REPETITIONS=10
+MATRIX_SIZES_CSV="400,800,1600,3200,6400"
+THREAD_COUNTS_CSV="2,4,6,8,12"
 BENCH_CPUS="0,1,2,3,4,5,6,7,8,9,10,11"
 BENCH_CPU_SINGLE="0"
+SKIP_OPTIMIZE=0
+FORCE_REBUILD=0
+MACHINE_NAME="machine1"
 
 # Best compiler config from bench_opt results
 BEST_FLAGS="-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer"
 NOOPT_FLAGS="-Wall"
 
-ALL_THREAD_COUNTS=(2 4 6 8 12)
-
 # CSV columns: suite,impl,flags,threads,matrix_size,repetition,wall_time_ms
 CSV_HEADER="suite,impl,flags,threads,matrix_size,repetition,wall_time_ms"
 
-# ---------------------------------------------------------------------------
-# BINARY NAMING
-# ---------------------------------------------------------------------------
-# Binaries are tagged with their flag set to allow both variants to coexist:
-#   bin/mul_seq_std_noopt
-#   bin/mul_seq_std_best
-#   bin/mul_seq_cache_noopt
-#   bin/mul_seq_cache_best
-#   bin/mul_threads_noopt
-#   bin/mul_threads_best
-#   bin/mul_conc_noopt
-#   bin/mul_conc_best
+# -----------------------------------------------------------------------------
+# Helpers
+# -----------------------------------------------------------------------------
+usage() {
+    cat <<'EOF'
+Usage:
+  ./bench_final.sh [options]
+
+Options:
+  -s, --suite <compiler|cache|mixed|all>
+  -c, --compiler <compiler command>
+  -i, --impl <list>
+  -f, --flags <suite|best|noopt|both>
+  -r, --reps <n>
+  -n, --sizes <csv>
+  -t, --threads <csv>
+      --cpu-single <core>
+      --cpu-set <cpuset>
+      --no-optimize
+      --force-rebuild
+      --machine <machine-name>
+      --machine <name>
+  -h, --help
+
+Implementation list values:
+  seq_std, seq_cache, threads, conc
+
+Examples:
+  ./bench_final.sh --suite compiler --compiler gcc
+  ./bench_final.sh --suite mixed --impl seq_cache,threads --flags both
+  ./bench_final.sh -s all -c clang -r 5 -n 400,800,1600
+EOF
+}
+
+trim_csv() {
+    local s="$1"
+    s="${s#,}"
+    s="${s%,}"
+    echo "${s}"
+}
+
+csv_to_array() {
+    local csv="$1"
+    local -n out_arr=$2
+    IFS=',' read -r -a out_arr <<< "$(trim_csv "${csv}")"
+}
+
+contains_item() {
+    local needle="$1"
+    shift
+    local item
+    for item in "$@"; do
+        [[ "${item}" == "${needle}" ]] && return 0
+    done
+    return 1
+}
 
 flag_tag() {
     local flags="$1"
@@ -68,6 +121,22 @@ flag_tag() {
     else
         echo "noopt"
     fi
+}
+
+normalize_compiler_cmd() {
+    local cmd="$1"
+    if [[ -z "${cmd}" ]]; then
+        echo "gcc"
+        return
+    fi
+    echo "${cmd}"
+}
+
+compiler_name() {
+    local cmd="$1"
+    local first
+    first="${cmd%% *}"
+    basename "${first}"
 }
 
 bin_path() {
@@ -83,49 +152,140 @@ declare -A SRC_FILE=(
     [conc]="src/processes/mul_conc.c"
 )
 
-# Extra link flags needed per source key
-declare -A EXTRA_FLAGS=(
-    [seq_std]=""
-    [seq_cache]=""
-    [threads]="-lpthread"
-    [conc]=""
+declare -A MAKE_TARGET=(
+    [seq_std]="bin/mul_seq"
+    [seq_cache]="bin/mul_seq_cache"
+    [threads]="bin/mul_threads"
+    [conc]="bin/mul_conc"
 )
 
+# -----------------------------------------------------------------------------
+# Parse CLI
+# -----------------------------------------------------------------------------
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -s|--suite)
+            SUITE="${2:-}"
+            shift 2
+            ;;
+        -c|--compiler)
+            COMPILER_CMD="${2:-}"
+            shift 2
+            ;;
+        -i|--impl)
+            RUN_IMPLS_CSV="${2:-}"
+            shift 2
+            ;;
+        -f|--flags)
+            RUN_FLAGS_MODE="${2:-}"
+            shift 2
+            ;;
+        -r|--reps)
+            REPETITIONS="${2:-}"
+            shift 2
+            ;;
+        -n|--sizes)
+            MATRIX_SIZES_CSV="${2:-}"
+            shift 2
+            ;;
+        -t|--threads)
+            THREAD_COUNTS_CSV="${2:-}"
+            shift 2
+            ;;
+        --cpu-single)
+            BENCH_CPU_SINGLE="${2:-}"
+            shift 2
+            ;;
+        --cpu-set)
+            BENCH_CPUS="${2:-}"
+            shift 2
+            ;;
+        --no-optimize)
+            SKIP_OPTIMIZE=1
+            shift
+            ;;
+        --force-rebuild)
+            FORCE_REBUILD=1
+            shift
+            ;;
+        --machine)
+            MACHINE_NAME="${2:-}"
+            RESULTS_DIR="tests/benchmarks/${MACHINE_NAME}/results_final"
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            usage >&2
+            exit 1
+            ;;
+    esac
+done
+
+if ! [[ "${REPETITIONS}" =~ ^[0-9]+$ ]] || [[ "${REPETITIONS}" -le 0 ]]; then
+    echo "Invalid repetitions: ${REPETITIONS}" >&2
+    exit 1
+fi
+
+# Arrays from CSV inputs
+MATRIX_SIZES=()
+ALL_THREAD_COUNTS=()
+csv_to_array "${MATRIX_SIZES_CSV}" MATRIX_SIZES
+csv_to_array "${THREAD_COUNTS_CSV}" ALL_THREAD_COUNTS
+
+if [[ ${#MATRIX_SIZES[@]} -eq 0 ]]; then
+    echo "No matrix sizes configured" >&2
+    exit 1
+fi
+
+if [[ ${#ALL_THREAD_COUNTS[@]} -eq 0 ]]; then
+    echo "No thread counts configured" >&2
+    exit 1
+fi
+
+# Compiler integration
+COMPILER_NAME="$(compiler_name "${COMPILER_CMD}")"
+MAKE=(make CC="${COMPILER_CMD}" COMPILER="${COMPILER_CMD}")
+
+# -----------------------------------------------------------------------------
+# Compilation
+# -----------------------------------------------------------------------------
 compile_binary() {
     local src_key="$1"
     local flags="$2"
     local bin
     bin="$(bin_path "${src_key}" "${flags}")"
 
-    if [[ -x "${bin}" ]]; then
+    if [[ ${FORCE_REBUILD} -eq 0 && -x "${bin}" ]]; then
         log_info "Already compiled: ${bin}"
         return 0
     fi
 
     local src="${SRC_FILE[${src_key}]}"
+    local make_target="${MAKE_TARGET[${src_key}]}"
+
     if [[ ! -f "${src}" ]]; then
         log_error "Source not found: ${src}"
         return 1
     fi
 
-    local tag="$(flag_tag "${flags}")"
-    local flags_clean=$(echo "${flags}" | tr -s ' ' | xargs)
+    local flags_clean
+    flags_clean="$(echo "${flags}" | tr -s ' ' | xargs)"
 
-    local make_target=""
-    case "${src_key}" in
-        seq_std)   make_target="bin/mul_seq" ;;
-        seq_cache) make_target="bin/mul_seq_cache" ;;
-        threads)   make_target="bin/mul_threads" ;;
-        conc)      make_target="bin/mul_conc" ;;
-    esac
+    log_info "Compiling [${src_key}/$(flag_tag "${flags}")] using ${COMPILER_CMD}: make -B ${make_target}"
 
-    log_info "Compiling [${src_key}/${tag}] via Makefile: make -B ${make_target}"
-
-    if make -B "${make_target}" OPT_FLAGS="${flags_clean}" >/dev/null 2>&1; then
-        mv "${make_target}" "${bin}"
+    if "${MAKE[@]}" -B "${make_target}" OPT_FLAGS="${flags_clean}" >/dev/null 2>&1; then
+        mv -f "${make_target}" "${bin}"
         log_ok "Binary: ${bin}"
     else
-        log_error "Compilation failed: ${src_key}/${tag}"
+        log_error "Compilation failed: ${src_key}/$(flag_tag "${flags}")"
         return 1
     fi
 }
@@ -135,23 +295,60 @@ compile_suite_binaries() {
     log_section "Compiling binaries for suite: ${suite}"
     mkdir -p "${BIN_DIR}"
 
+    local impls=()
+    local flags_mode="${RUN_FLAGS_MODE}"
+
     case "${suite}" in
         compiler)
-            compile_binary seq_std  "${BEST_FLAGS}"
-            compile_binary threads  "${NOOPT_FLAGS}"
-            compile_binary conc     "${NOOPT_FLAGS}"
+            [[ -z "${RUN_IMPLS_CSV}" ]] && impls=(seq_std threads conc) || csv_to_array "${RUN_IMPLS_CSV}" impls
+            [[ "${flags_mode}" == "suite" ]] && flags_mode="both"
             ;;
         cache)
-            compile_binary seq_cache "${NOOPT_FLAGS}"
+            [[ -z "${RUN_IMPLS_CSV}" ]] && impls=(seq_cache) || csv_to_array "${RUN_IMPLS_CSV}" impls
+            [[ "${flags_mode}" == "suite" ]] && flags_mode="both"
             ;;
         mixed)
-            compile_binary seq_cache "${BEST_FLAGS}"
-            compile_binary threads   "${BEST_FLAGS}"
-            compile_binary conc      "${BEST_FLAGS}"
+            [[ -z "${RUN_IMPLS_CSV}" ]] && impls=(seq_cache threads conc) || csv_to_array "${RUN_IMPLS_CSV}" impls
+            [[ "${flags_mode}" == "suite" ]] && flags_mode="both"
+            ;;
+        *)
+            log_error "Unknown suite: ${suite}"
+            exit 1
             ;;
     esac
+
+    local flags_list=()
+    case "${flags_mode}" in
+        best) flags_list=("${BEST_FLAGS}") ;;
+        noopt) flags_list=("${NOOPT_FLAGS}") ;;
+        both) flags_list=("${BEST_FLAGS}" "${NOOPT_FLAGS}") ;;
+        suite)
+            # suite default: preserve original behavior
+            if [[ "${suite}" == "compiler" ]]; then
+                flags_list=("${BEST_FLAGS}" "${NOOPT_FLAGS}")
+            elif [[ "${suite}" == "cache" ]]; then
+                flags_list=("${NOOPT_FLAGS}")
+            else
+                flags_list=("${BEST_FLAGS}")
+            fi
+            ;;
+        *)
+            log_error "Invalid flags mode: ${flags_mode}"
+            exit 1
+            ;;
+    esac
+
+    local impl flags
+    for impl in "${impls[@]}"; do
+        for flags in "${flags_list[@]}"; do
+            compile_binary "${impl}" "${flags}"
+        done
+    done
 }
 
+# -----------------------------------------------------------------------------
+# Benchmark helpers
+# -----------------------------------------------------------------------------
 already_done() {
     local csv="$1" suite="$2" impl="$3" threads="$4" size="$5" rep="$6"
     awk -F',' \
@@ -190,31 +387,22 @@ write_row() {
     sync
 }
 
-# ---------------------------------------------------------------------------
-# BENCHMARK LOOP (generic)
-# ---------------------------------------------------------------------------
-# Accepts an array of entries: "impl|flags|threads"
-# impl    : seq_std | seq_cache | threads | conc
-# flags   : compiler flags
-# threads : number of threads (0 = sequential/process)
-
 run_entries() {
     local suite="$1"
     local csv="${RESULTS_DIR}/data_${suite}.csv"
     shift
     local entries=("$@")
 
+    local entry
     for entry in "${entries[@]}"; do
         local impl flags threads
-        impl=$(echo    "${entry}" | cut -d'|' -f1)
-        flags=$(echo   "${entry}" | cut -d'|' -f2)
-        threads=$(echo "${entry}" | cut -d'|' -f3)
+        IFS='|' read -r impl flags threads <<< "${entry}"
 
-        local bin tag
+        local bin tag label
         bin="$(bin_path "${impl}" "${flags}")"
         tag="$(flag_tag "${flags}")"
 
-        local label="${impl}/${tag}"
+        label="${impl}/${tag}"
         [[ "${threads}" -gt 0 ]] && label="${impl}_${threads}t/${tag}"
 
         log_section "Measuring: ${label}"
@@ -227,57 +415,16 @@ run_entries() {
                     continue
                 fi
 
-                printf "  rep=%-2s  size=%-6s  " "${rep}" "${size}"
+                printf '  rep=%-2s  size=%-6s  ' "${rep}" "${size}"
                 local ms
                 ms=$(run_single "${bin}" "${size}" "${threads}")
-                printf "%s ms\n" "${ms}"
+                printf '%s ms\n' "${ms}"
 
                 write_row "${csv}" "${suite}" "${impl}" "${flags}" \
                           "${threads}" "${size}" "${rep}" "${ms}"
             done
         done
     done
-}
-
-run_suite_compiler() {
-    local csv="${RESULTS_DIR}/data_compiler.csv"
-    setup_csv "${RESULTS_DIR}" "${csv}" "${CSV_HEADER}"
-
-    local entries=()
-    entries+=("seq_std|${BEST_FLAGS}|0")
-    for t in "${ALL_THREAD_COUNTS[@]}"; do
-        entries+=("threads|${NOOPT_FLAGS}|${t}")
-    done
-    entries+=("conc|${NOOPT_FLAGS}|0")
-
-    run_entries "compiler" "${entries[@]}"
-    print_suite_summary "compiler" "${csv}" "seq_std" "${BEST_FLAGS}" 0
-}
-
-run_suite_cache() {
-    local csv="${RESULTS_DIR}/data_cache.csv"
-    setup_csv "${RESULTS_DIR}" "${csv}" "${CSV_HEADER}"
-
-    local entries=(
-        "seq_cache|${NOOPT_FLAGS}|0"
-    )
-    run_entries "cache" "${entries[@]}"
-    print_suite_summary "cache" "${csv}" "seq_std" "${NOOPT_FLAGS}" 0
-}
-
-run_suite_mixed() {
-    local csv="${RESULTS_DIR}/data_mixed.csv"
-    setup_csv "${RESULTS_DIR}" "${csv}" "${CSV_HEADER}"
-
-    local entries=()
-    entries+=("seq_cache|${BEST_FLAGS}|0")
-    for t in "${ALL_THREAD_COUNTS[@]}"; do
-        entries+=("threads|${BEST_FLAGS}|${t}")
-    done
-    entries+=("conc|${BEST_FLAGS}|0")
-
-    run_entries "mixed" "${entries[@]}"
-    print_suite_summary "mixed" "${csv}" "seq_cache" "${BEST_FLAGS}" 0
 }
 
 print_suite_summary() {
@@ -290,11 +437,9 @@ print_suite_summary() {
     local summary="${RESULTS_DIR}/summary_${suite}.txt"
     local tmpfile="${RESULTS_DIR}/.avgs_${suite}.tmp"
 
-    # Compute averages per (impl, flags, threads, size)
     awk -F',' '
     NR==1 { next }
     {
-        # strip quotes from flags field
         gsub(/^"|"$/, "", $3)
         key = $2 SUBSEP $3 SUBSEP $4 SUBSEP $5
         sum[key] += $7
@@ -307,11 +452,9 @@ print_suite_summary() {
         }
     }' "${csv}" | sort > "${tmpfile}"
 
-    # Get reference averages per size
     declare -A REF_AVG
     while IFS='|' read -r impl flags threads size avg; do
-        if [[ "${impl}" == "${ref_impl}" && \
-              "${threads}" == "${ref_threads}" ]]; then
+        if [[ "${impl}" == "${ref_impl}" && "${threads}" == "${ref_threads}" && "${flags}" == "${ref_flags}" ]]; then
             REF_AVG["${size}"]="${avg}"
         fi
     done < "${tmpfile}"
@@ -321,10 +464,11 @@ print_suite_summary() {
         echo "Suite     : ${suite}"
         echo "Date      : $(date '+%Y-%m-%d %H:%M:%S')"
         echo "Host      : $(hostname)"
-        echo "GCC       : $(gcc --version | head -1)"
+        echo "Compiler  : ${COMPILER_CMD}"
+        echo "GCC/Clang : $(${COMPILER_CMD%% *} --version 2>/dev/null | head -1 || true)"
         echo "Sizes     : ${MATRIX_SIZES[*]}"
         echo "Reps      : ${REPETITIONS}"
-        echo "Reference : ${ref_impl} (threads=${ref_threads})"
+        echo "Reference : ${ref_impl} (${ref_flags}, threads=${ref_threads})"
         echo ""
         echo "Average wall time (ms)"
         echo "======================================================================="
@@ -339,28 +483,23 @@ print_suite_summary() {
         done
         printf "  %10s\n" "----------"
 
+        declare -A ROW_SUM ROW_KEY_ORDER
         while IFS='|' read -r impl flags threads size avg; do
-            : # aggregate pass — handled in the display loop below
-        done < /dev/null
-
-        declare -A ROW_SUM ROW_CNT ROW_KEY_ORDER
-        while IFS='|' read -r impl flags threads size avg; do
-            local tag
+            local tag row_key
             tag="$(flag_tag "${flags}")"
-            local row_key="${impl}|${threads}|${tag}"
+            row_key="${impl}|${threads}|${tag}"
             ROW_SUM["${row_key}:${size}"]="${avg}"
-            ROW_KEY_ORDER["${row_key}"]="${row_key}"
+            ROW_KEY_ORDER["${row_key}"]=1
         done < "${tmpfile}"
 
-        # Print in consistent order: seq first, then threads ascending, then conc
         local ordered_keys=()
         for k in "${!ROW_KEY_ORDER[@]}"; do
             ordered_keys+=("${k}")
         done
-        IFS=$'\n' ordered_keys=($(printf '%s\n' "${ordered_keys[@]}" \
-            | sort -t'|' -k1,1 -k2,2n))
+        IFS=$'\n' ordered_keys=($(printf '%s\n' "${ordered_keys[@]}" | sort -t'|' -k1,1 -k2,2n))
         unset IFS
 
+        local row_key
         for row_key in "${ordered_keys[@]}"; do
             IFS='|' read -r impl threads tag <<< "${row_key}"
             local label="${impl}"
@@ -411,32 +550,172 @@ print_banner() {
     echo -e "${BOLD}"
     echo "============================================================"
     echo "   Final HPC Benchmark  --  Suite: ${suite}"
+    echo "   Compiler    : ${COMPILER_CMD}"
     echo "   Sizes       : ${MATRIX_SIZES[*]}"
     echo "   Repetitions : ${REPETITIONS}"
     echo "   Bench CPUs  : ${BENCH_CPUS}"
-    echo "   Best flags  : ${BEST_FLAGS}"
+    echo "   Single CPU  : ${BENCH_CPU_SINGLE}"
+    echo "   Flags mode   : ${RUN_FLAGS_MODE}"
+    echo "   Impl filter  : ${RUN_IMPLS_CSV:-suite-default}"
     echo "   Date        : $(date '+%Y-%m-%d %H:%M:%S')"
     echo "============================================================"
     echo -e "${RESET}"
 }
 
-SUITE="${1:-all}"
+# -----------------------------------------------------------------------------
+# Suites
+# -----------------------------------------------------------------------------
+selected_impls_for_suite() {
+    local suite="$1"
+    local -n out_impls=$2
+
+    if [[ -n "${RUN_IMPLS_CSV}" ]]; then
+        csv_to_array "${RUN_IMPLS_CSV}" out_impls
+        return
+    fi
+
+    case "${suite}" in
+        compiler) out_impls=(seq_std threads conc) ;;
+        cache)    out_impls=(seq_cache) ;;
+        mixed)    out_impls=(seq_cache threads conc) ;;
+        *)        out_impls=() ;;
+    esac
+}
+
+selected_flags_for_suite() {
+    local suite="$1"
+    local -n out_flags=$2
+
+    case "${RUN_FLAGS_MODE}" in
+        best) out_flags=("${BEST_FLAGS}") ;;
+        noopt) out_flags=("${NOOPT_FLAGS}") ;;
+        both) out_flags=("${BEST_FLAGS}" "${NOOPT_FLAGS}") ;;
+        suite)
+            case "${suite}" in
+                compiler) out_flags=("${BEST_FLAGS}" "${NOOPT_FLAGS}") ;;
+                cache)    out_flags=("${NOOPT_FLAGS}") ;;
+                mixed)    out_flags=("${BEST_FLAGS}") ;;
+            esac
+            ;;
+        *)
+            log_error "Invalid flags mode: ${RUN_FLAGS_MODE}"
+            exit 1
+            ;;
+    esac
+}
+
+run_suite_compiler() {
+    local csv="${RESULTS_DIR}/data_compiler.csv"
+    setup_csv "${RESULTS_DIR}" "${csv}" "${CSV_HEADER}"
+
+    local impls flags entries=()
+    selected_impls_for_suite "compiler" impls
+    selected_flags_for_suite "compiler" flags
+
+    local impl flag t
+    for impl in "${impls[@]}"; do
+        case "${impl}" in
+            seq_std)
+                for flag in "${flags[@]}"; do
+                    entries+=("seq_std|${flag}|0")
+                done
+                ;;
+            threads)
+                for flag in "${flags[@]}"; do
+                    for t in "${ALL_THREAD_COUNTS[@]}"; do
+                        entries+=("threads|${flag}|${t}")
+                    done
+                done
+                ;;
+            conc)
+                for flag in "${flags[@]}"; do
+                    entries+=("conc|${flag}|0")
+                done
+                ;;
+        esac
+    done
+
+    run_entries "compiler" "${entries[@]}"
+    print_suite_summary "compiler" "${csv}" "seq_std" "${BEST_FLAGS}" 0
+}
+
+run_suite_cache() {
+    local csv="${RESULTS_DIR}/data_cache.csv"
+    setup_csv "${RESULTS_DIR}" "${csv}" "${CSV_HEADER}"
+
+    local impls flags entries=()
+    selected_impls_for_suite "cache" impls
+    selected_flags_for_suite "cache" flags
+
+    local impl flag
+    for impl in "${impls[@]}"; do
+        case "${impl}" in
+            seq_cache)
+                for flag in "${flags[@]}"; do
+                    entries+=("seq_cache|${flag}|0")
+                done
+                ;;
+        esac
+    done
+
+    run_entries "cache" "${entries[@]}"
+    print_suite_summary "cache" "${csv}" "seq_cache" "${NOOPT_FLAGS}" 0
+}
+
+run_suite_mixed() {
+    local csv="${RESULTS_DIR}/data_mixed.csv"
+    setup_csv "${RESULTS_DIR}" "${csv}" "${CSV_HEADER}"
+
+    local impls flags entries=()
+    selected_impls_for_suite "mixed" impls
+    selected_flags_for_suite "mixed" flags
+
+    local impl flag t
+    for impl in "${impls[@]}"; do
+        case "${impl}" in
+            seq_cache)
+                for flag in "${flags[@]}"; do
+                    entries+=("seq_cache|${flag}|0")
+                done
+                ;;
+            threads)
+                for flag in "${flags[@]}"; do
+                    for t in "${ALL_THREAD_COUNTS[@]}"; do
+                        entries+=("threads|${flag}|${t}")
+                    done
+                done
+                ;;
+            conc)
+                for flag in "${flags[@]}"; do
+                    entries+=("conc|${flag}|0")
+                done
+                ;;
+        esac
+    done
+
+    run_entries "mixed" "${entries[@]}"
+    print_suite_summary "mixed" "${csv}" "seq_cache" "${BEST_FLAGS}" 0
+}
 
 run_suite() {
     local suite="$1"
     print_banner "${suite}"
     compile_suite_binaries "${suite}"
+
     case "${suite}" in
         compiler) run_suite_compiler ;;
-        cache)    run_suite_cache    ;;
-        mixed)    run_suite_mixed    ;;
+        cache)    run_suite_cache ;;
+        mixed)    run_suite_mixed ;;
     esac
 }
 
 main() {
     mkdir -p "${RESULTS_DIR}" "${BIN_DIR}"
-    trap restore_system EXIT
-    optimize_system
+
+    if [[ ${SKIP_OPTIMIZE} -eq 0 ]]; then
+        trap restore_system EXIT
+        optimize_system
+    fi
 
     case "${SUITE}" in
         compiler|cache|mixed)
