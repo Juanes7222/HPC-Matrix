@@ -1,0 +1,305 @@
+machine,impl,flags,processes,matrix_size,repetition,io_ms,scatter_ms,compute_ms,gather_ms,total_ms
+mpi,mul_mpi_nfs,"",1,400,1,11.192,0.343,170.360,0.277,183.238
+mpi,mul_mpi_nfs,"",1,800,1,22.418,1.313,1330.718,1.223,1356.626
+mpi,mul_mpi_nfs,"",1,1600,1,70.278,4.877,10213.895,4.959,10297.424
+mpi,mul_mpi_nfs,"",1,3200,1,266.740,18.317,81244.982,19.386,81564.051
+mpi,mul_mpi_nfs,"",2,400,1,6.932,0.394,171.015,0.421,179.561
+mpi,mul_mpi_nfs,"",2,800,1,16.968,1.824,1340.294,1.505,1361.672
+mpi,mul_mpi_nfs,"",2,1600,1,63.231,5.716,10926.848,6.111,11005.996
+mpi,mul_mpi_nfs,"",2,3200,1,261.703,21.802,86186.950,21.325,86509.157
+mpi,mul_mpi_nfs,"",2,6400,1,1503.872,86.397,689768.599,85.560,691507.332
+mpi,mul_mpi_nfs,"",2,400,2,5.744,0.397,172.169,0.409,179.539
+mpi,mul_mpi_nfs,"",2,800,2,15.989,1.625,1357.049,1.517,1379.274
+mpi,mul_mpi_nfs,"",2,1600,2,64.696,5.522,10952.309,5.885,11040.429
+mpi,mul_mpi_nfs,"",2,3200,2,44.584,22.102,86744.179,21.777,86909.363
+mpi,mul_mpi_nfs,"",2,6400,2,176.445,85.289,646380.053,85.430,647003.325
+mpi,mul_mpi_nfs,"",2,400,3,0.811,0.412,167.284,0.400,169.456
+mpi,mul_mpi_nfs,"",2,800,3,2.819,1.596,1346.181,1.463,1355.740
+mpi,mul_mpi_nfs,"",2,1600,3,11.353,5.647,10865.420,5.678,10904.573
+mpi,mul_mpi_nfs,"",2,3200,3,44.216,22.832,86822.435,21.435,86989.003
+mpi,mul_mpi_nfs,"",2,6400,3,173.832,86.599,608473.809,85.981,609102.433
+mpi,mul_mpi_nfs,"",2,400,4,0.764,0.407,170.618,0.412,172.734
+mpi,mul_mpi_nfs,"",2,800,4,2.786,1.505,1350.977,1.560,1360.467
+mpi,mul_mpi_nfs,"",2,1600,4,11.049,5.432,10904.065,6.174,10945.073
+mpi,mul_mpi_nfs,"",2,3200,4,44.745,22.152,86303.752,21.208,86471.017
+mpi,mul_mpi_nfs,"",2,6400,4,174.042,85.833,686191.258,88.580,686812.137
+mpi,mul_mpi_nfs,"",2,400,5,0.762,0.402,169.506,0.412,171.582
+mpi,mul_mpi_nfs,"",2,800,5,2.769,1.501,1356.144,1.545,1365.557
+mpi,mul_mpi_nfs,"",2,1600,5,11.714,5.863,10954.832,5.833,10996.141
+mpi,mul_mpi_nfs,"",2,3200,5,44.748,22.957,86819.153,21.455,86986.724
+mpi,mul_mpi_nfs,"",2,6400,5,174.800,86.598,686970.910,86.057,687594.459
+mpi,mul_mpi_nfs,"",2,400,6,0.792,0.378,172.825,0.409,174.913
+mpi,mul_mpi_nfs,"",2,800,6,2.930,1.676,1371.878,1.564,1381.816
+mpi,mul_mpi_nfs,"",2,1600,6,11.305,5.646,10775.126,5.964,10816.048
+mpi,mul_mpi_nfs,"",2,3200,6,43.893,21.739,85949.849,21.342,86115.907
+mpi,mul_mpi_nfs,"",2,6400,6,174.122,84.855,688043.631,86.957,688673.028
+mpi,mul_mpi_nfs,"",2,400,7,0.799,0.382,172.820,0.410,174.926
+mpi,mul_mpi_nfs,"",2,800,7,2.924,1.432,1367.344,1.544,1376.927
+mpi,mul_mpi_nfs,"",2,1600,7,11.138,5.674,10917.208,5.998,10956.205
+mpi,mul_mpi_nfs,"",2,3200,7,44.473,21.774,86606.591,21.637,86772.250
+mpi,mul_mpi_nfs,"",2,6400,7,174.048,87.131,642035.153,85.093,642659.254
+mpi,mul_mpi_nfs,"",2,400,8,0.793,0.363,167.914,0.420,170.003
+mpi,mul_mpi_nfs,"",2,800,8,3.075,1.673,1346.792,1.527,1356.712
+mpi,mul_mpi_nfs,"",2,1600,8,11.824,5.628,10804.112,5.989,10845.720
+mpi,mul_mpi_nfs,"",2,3200,8,44.157,21.558,86339.568,21.685,86506.994
+mpi,mul_mpi_nfs,"",2,6400,8,174.362,85.916,584663.379,72.220,585276.191
+mpi,mul_mpi_nfs,"",2,400,9,0.826,0.393,171.617,0.422,173.819
+mpi,mul_mpi_nfs,"",2,800,9,2.863,1.578,1355.493,1.386,1363.879
+mpi,mul_mpi_nfs,"",2,1600,9,11.091,5.166,10951.316,6.038,10991.310
+mpi,mul_mpi_nfs,"",2,3200,9,44.949,22.523,86367.574,21.661,86535.568
+mpi,mul_mpi_nfs,"",2,6400,9,175.954,84.723,687058.041,86.537,687684.328
+mpi,mul_mpi_nfs,"",2,400,10,0.680,0.293,85.571,0.296,87.262
+mpi,mul_mpi_nfs,"",2,800,10,2.794,1.527,1358.439,1.467,1367.905
+mpi,mul_mpi_nfs,"",2,1600,10,11.318,5.641,10992.316,5.888,11033.276
+mpi,mul_mpi_nfs,"",2,3200,10,44.639,22.655,85828.279,21.764,85995.063
+mpi,mul_mpi_nfs,"",2,6400,10,173.150,85.440,689152.864,85.584,689784.018
+mpi,mul_mpi_nfs,"",3,400,1,21.607,5.464,116.170,4.493,151.219
+mpi,mul_mpi_nfs,"",3,800,1,24.199,8.973,913.138,8.540,958.840
+mpi,mul_mpi_nfs,"",3,1600,1,37.213,16.563,7340.205,14.676,7415.483
+mpi,mul_mpi_nfs,"",3,3200,1,108.270,45.883,58506.984,43.637,58725.009
+mpi,mul_mpi_nfs,"",3,6400,1,387.366,159.922,404063.106,156.964,404834.814
+mpi,mul_mpi_nfs,"",3,400,2,18.398,5.490,114.632,4.477,146.528
+mpi,mul_mpi_nfs,"",3,800,2,15.485,9.113,907.476,7.969,945.306
+mpi,mul_mpi_nfs,"",3,1600,2,18.891,17.428,7240.388,16.551,7309.129
+mpi,mul_mpi_nfs,"",3,3200,2,53.467,46.407,57792.548,43.421,57987.980
+mpi,mul_mpi_nfs,"",3,6400,2,188.909,160.214,420362.033,157.575,421157.472
+mpi,mul_mpi_nfs,"",3,400,3,16.870,5.515,116.164,4.550,146.682
+mpi,mul_mpi_nfs,"",3,800,3,15.459,10.269,900.202,9.382,941.824
+mpi,mul_mpi_nfs,"",3,1600,3,19.059,16.716,7190.890,15.557,7262.886
+mpi,mul_mpi_nfs,"",3,3200,3,52.490,44.911,57420.972,43.446,57640.459
+mpi,mul_mpi_nfs,"",3,6400,3,187.923,158.540,424545.594,157.007,425329.073
+mpi,mul_mpi_nfs,"",3,400,4,16.484,5.466,112.574,4.496,142.542
+mpi,mul_mpi_nfs,"",3,800,4,16.432,9.373,916.156,8.400,956.876
+mpi,mul_mpi_nfs,"",3,1600,4,18.737,16.626,7270.243,16.168,7342.657
+mpi,mul_mpi_nfs,"",3,3200,4,53.808,46.747,57609.418,43.664,57833.956
+mpi,mul_mpi_nfs,"",3,6400,4,190.552,158.454,458743.433,156.441,459535.078
+mpi,mul_mpi_nfs,"",3,400,5,17.771,5.222,112.686,4.310,143.413
+mpi,mul_mpi_nfs,"",3,800,5,15.371,9.190,902.311,8.407,940.526
+mpi,mul_mpi_nfs,"",3,1600,5,20.818,17.441,7187.371,15.430,7255.265
+mpi,mul_mpi_nfs,"",3,3200,5,52.768,46.221,57523.117,44.797,57728.686
+mpi,mul_mpi_nfs,"",3,6400,5,187.903,157.543,425536.647,157.566,426325.923
+mpi,mul_mpi_nfs,"",3,400,6,17.362,5.291,114.151,4.365,144.629
+mpi,mul_mpi_nfs,"",3,800,6,15.344,9.145,909.567,8.447,948.021
+mpi,mul_mpi_nfs,"",3,1600,6,18.778,16.117,7315.294,15.198,7380.258
+mpi,mul_mpi_nfs,"",3,3200,6,53.107,45.572,58135.128,43.854,58354.026
+mpi,mul_mpi_nfs,"",3,6400,6,189.517,158.521,461490.915,157.547,462283.402
+mpi,mul_mpi_nfs,"",3,400,7,16.514,5.194,118.310,4.316,147.717
+mpi,mul_mpi_nfs,"",3,800,7,15.345,9.263,927.654,8.345,967.417
+mpi,mul_mpi_nfs,"",3,1600,7,18.903,16.251,7350.193,15.291,7421.732
+mpi,mul_mpi_nfs,"",3,3200,7,52.815,44.693,57597.979,46.189,57820.588
+mpi,mul_mpi_nfs,"",3,6400,7,189.692,158.533,400722.573,158.122,401512.770
+mpi,mul_mpi_nfs,"",3,400,8,16.476,5.405,118.931,4.361,148.638
+mpi,mul_mpi_nfs,"",3,800,8,15.528,9.145,909.934,7.975,949.110
+mpi,mul_mpi_nfs,"",3,1600,8,19.360,16.950,7277.316,15.378,7349.965
+mpi,mul_mpi_nfs,"",3,3200,8,52.774,45.468,57775.621,43.886,57999.970
+mpi,mul_mpi_nfs,"",3,6400,8,190.203,161.298,416784.401,156.874,417570.723
+mpi,mul_mpi_nfs,"",3,400,9,17.279,5.340,114.578,4.355,144.969
+mpi,mul_mpi_nfs,"",3,800,9,15.384,8.988,906.776,7.934,945.662
+mpi,mul_mpi_nfs,"",3,1600,9,18.956,16.706,7270.019,15.836,7340.478
+mpi,mul_mpi_nfs,"",3,3200,9,53.121,44.936,46165.564,43.253,46388.965
+mpi,mul_mpi_nfs,"",3,6400,9,188.949,159.282,459721.641,156.529,460545.119
+mpi,mul_mpi_nfs,"",3,400,10,16.407,5.506,116.191,4.418,146.068
+mpi,mul_mpi_nfs,"",3,800,10,15.678,9.080,909.087,9.078,948.126
+mpi,mul_mpi_nfs,"",3,1600,10,19.152,16.548,7191.246,14.860,7257.170
+mpi,mul_mpi_nfs,"",3,3200,10,52.971,45.341,57750.279,43.787,57954.298
+mpi,mul_mpi_nfs,"",3,6400,10,189.572,157.240,459063.423,157.137,459871.075
+mpi,mul_mpi_nfs,"",4,400,1,11.278,5.291,91.204,6.914,118.042
+mpi,mul_mpi_nfs,"",4,800,1,12.358,10.240,719.524,11.505,757.604
+mpi,mul_mpi_nfs,"",4,1600,1,16.821,20.120,5742.539,23.801,5809.780
+mpi,mul_mpi_nfs,"",4,3200,1,53.900,50.097,44980.563,54.279,45157.294
+mpi,mul_mpi_nfs,"",4,6400,1,191.066,183.675,343914.975,186.473,344542.689
+mpi,mul_mpi_nfs,"",4,400,2,11.291,5.336,91.341,6.858,118.284
+mpi,mul_mpi_nfs,"",4,800,2,12.290,12.338,721.964,11.825,763.654
+mpi,mul_mpi_nfs,"",4,1600,2,16.657,21.440,5741.675,24.477,5824.567
+mpi,mul_mpi_nfs,"",4,3200,2,54.252,52.534,45641.717,53.314,45881.496
+mpi,mul_mpi_nfs,"",4,6400,2,191.608,182.119,357148.119,186.414,357989.764
+mpi,mul_mpi_nfs,"",4,400,3,11.416,5.190,91.237,6.989,118.209
+mpi,mul_mpi_nfs,"",4,800,3,12.262,9.048,722.554,12.296,762.779
+mpi,mul_mpi_nfs,"",4,1600,3,16.292,20.109,5643.058,23.105,5721.462
+mpi,mul_mpi_nfs,"",4,3200,3,54.113,50.610,45676.971,54.506,45916.569
+mpi,mul_mpi_nfs,"",4,6400,3,191.579,184.293,361175.680,186.807,362022.222
+mpi,mul_mpi_nfs,"",4,400,4,11.282,5.381,91.313,6.915,118.341
+mpi,mul_mpi_nfs,"",4,800,4,13.302,11.018,715.877,11.600,758.361
+mpi,mul_mpi_nfs,"",4,1600,4,17.626,19.635,5748.621,21.660,5828.125
+mpi,mul_mpi_nfs,"",4,3200,4,54.037,51.938,45152.867,54.082,45392.908
+mpi,mul_mpi_nfs,"",4,6400,4,191.553,183.514,358712.048,184.769,359592.785
+mpi,mul_mpi_nfs,"",4,400,5,11.299,5.349,91.486,6.908,119.297
+mpi,mul_mpi_nfs,"",4,800,5,12.499,11.048,719.028,11.682,760.729
+mpi,mul_mpi_nfs,"",4,1600,5,17.402,21.637,5749.039,24.732,5846.010
+mpi,mul_mpi_nfs,"",4,3200,5,54.162,51.870,45668.800,52.448,45908.716
+mpi,mul_mpi_nfs,"",4,6400,5,190.950,182.019,349654.775,185.778,350498.743
+mpi,mul_mpi_nfs,"",4,400,6,11.577,5.267,91.261,6.953,118.445
+mpi,mul_mpi_nfs,"",4,800,6,12.298,10.292,721.625,13.546,764.383
+mpi,mul_mpi_nfs,"",4,1600,6,18.216,22.337,5755.413,22.845,5839.322
+mpi,mul_mpi_nfs,"",4,3200,6,54.173,51.725,45672.151,53.920,45912.984
+mpi,mul_mpi_nfs,"",4,6400,6,191.477,183.205,362105.859,224.702,362986.961
+mpi,mul_mpi_nfs,"",4,400,7,11.237,5.277,91.268,6.823,118.036
+mpi,mul_mpi_nfs,"",4,800,7,12.824,11.439,722.527,12.488,765.937
+mpi,mul_mpi_nfs,"",4,1600,7,16.897,21.088,5641.665,22.642,5736.196
+mpi,mul_mpi_nfs,"",4,3200,7,54.148,51.087,45679.341,68.066,45931.691
+mpi,mul_mpi_nfs,"",4,6400,7,191.287,182.288,358326.994,206.379,359207.728
+mpi,mul_mpi_nfs,"",4,400,8,11.428,5.321,91.235,6.877,118.344
+mpi,mul_mpi_nfs,"",4,800,8,12.514,10.739,721.824,11.056,761.433
+mpi,mul_mpi_nfs,"",4,1600,8,19.090,20.595,5675.846,24.139,5753.193
+mpi,mul_mpi_nfs,"",4,3200,8,53.566,52.944,45665.332,69.500,45897.086
+mpi,mul_mpi_nfs,"",4,6400,8,192.808,183.858,355759.748,226.290,356656.881
+mpi,mul_mpi_nfs,"",4,400,9,11.351,5.377,91.202,6.773,118.123
+mpi,mul_mpi_nfs,"",4,800,9,12.459,10.177,721.631,11.660,762.713
+mpi,mul_mpi_nfs,"",4,1600,9,16.396,20.305,5704.718,21.724,5783.572
+mpi,mul_mpi_nfs,"",4,3200,9,54.387,52.339,44468.415,69.016,44724.787
+mpi,mul_mpi_nfs,"",4,6400,9,192.408,183.580,361875.455,219.528,362755.429
+mpi,mul_mpi_nfs,"",4,400,10,11.398,5.255,91.223,6.850,118.071
+mpi,mul_mpi_nfs,"",4,800,10,12.260,9.223,721.496,11.413,759.836
+mpi,mul_mpi_nfs,"",4,1600,10,18.594,22.852,5745.211,23.926,5828.061
+mpi,mul_mpi_nfs,"",4,3200,10,53.512,52.061,46040.314,67.422,46284.776
+mpi,mul_mpi_nfs,"",4,6400,10,192.095,182.753,362066.442,225.430,362947.006
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,400,1,9.508,0.365,6.087,0.316,18.254
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,800,1,24.286,1.470,61.448,1.455,95.044
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,1600,1,72.271,4.500,511.671,5.572,622.153
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,3200,1,261.507,20.743,6647.491,20.483,7077.018
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,6400,1,1503.949,80.976,77416.724,81.274,79390.431
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,400,2,0.744,0.402,6.189,0.357,8.157
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,800,2,2.711,1.431,64.053,1.500,70.911
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,1600,2,10.542,5.215,510.928,5.616,562.057
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,3200,2,43.219,22.449,6333.978,20.394,6496.313
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,6400,2,166.059,82.309,78066.120,82.063,78693.339
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,400,3,0.711,0.357,6.106,0.327,8.758
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,800,3,2.715,1.339,62.087,1.458,68.814
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,1600,3,10.597,5.237,515.716,5.734,566.932
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,3200,3,41.492,20.912,5384.922,19.865,5544.022
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,6400,3,165.362,80.857,77006.573,80.395,77611.260
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,400,4,0.720,0.378,5.946,0.293,8.443
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,800,4,2.686,1.422,61.201,1.437,69.628
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,1600,4,10.644,5.258,490.430,5.521,521.283
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,3200,4,41.775,20.758,6761.990,20.611,6920.359
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,6400,4,166.895,81.333,76608.824,82.216,77245.611
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,400,5,0.754,0.378,6.110,0.320,8.048
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,800,5,2.719,1.382,61.042,1.391,67.687
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,1600,5,11.165,5.121,521.840,5.983,561.876
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,3200,5,42.541,21.198,6502.720,20.419,6664.448
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,6400,5,165.464,80.365,77212.405,83.958,77818.466
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,400,6,0.737,0.436,6.402,0.342,8.360
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,800,6,2.749,1.623,64.706,1.477,71.752
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,1600,6,10.695,5.408,514.590,5.681,551.666
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,3200,6,42.221,20.801,6510.695,20.534,6670.756
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,6400,6,165.754,82.046,76869.430,81.305,77494.819
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,400,7,0.711,0.371,6.100,0.314,7.971
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,800,7,2.749,1.466,62.703,1.452,71.243
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,1600,7,10.996,5.285,521.851,5.677,559.927
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,3200,7,42.006,21.367,7008.215,20.429,7169.774
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,6400,7,163.416,80.710,76792.853,84.191,77401.568
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,400,8,0.735,0.366,6.420,0.347,8.326
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,800,8,2.739,1.415,67.558,1.457,74.412
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,1600,8,10.853,5.637,554.056,5.824,588.683
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,3200,8,42.663,21.748,7453.313,21.269,7605.743
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,6400,8,172.103,84.252,78447.985,83.161,79086.863
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,400,9,0.753,0.356,5.732,0.313,7.594
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,800,9,2.749,1.544,62.791,1.480,69.785
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,1600,9,10.649,5.457,503.478,5.554,536.636
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,3200,9,41.585,21.051,6209.779,20.231,6351.925
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,6400,9,164.260,82.191,78611.334,81.803,79213.832
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,400,10,0.735,0.376,6.171,0.294,8.009
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,800,10,2.761,1.474,62.539,1.354,69.349
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,1600,10,10.833,5.317,502.877,5.513,534.199
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,3200,10,41.856,20.968,5960.268,20.481,6107.716
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",2,6400,10,166.610,81.945,76837.611,80.715,77439.786
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,400,1,22.535,5.343,4.665,4.363,40.399
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,800,1,25.869,9.194,43.582,8.227,93.936
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,1600,1,35.812,16.727,331.030,15.090,411.567
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,3200,1,108.248,44.004,3968.113,42.014,4241.149
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,6400,1,377.378,155.749,52885.064,156.574,53960.123
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,400,2,17.782,5.310,4.273,4.273,35.017
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,800,2,16.624,10.201,42.615,8.030,81.603
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,1600,2,20.976,16.895,345.247,15.066,411.073
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,3200,2,54.153,45.129,4826.678,42.586,5024.263
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,6400,2,173.376,156.397,51143.911,154.584,51908.641
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,400,3,14.457,5.329,4.614,4.289,32.096
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,800,3,15.825,9.112,43.529,8.212,80.868
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,1600,3,19.088,16.541,355.596,14.728,420.525
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,3200,3,53.219,45.770,2598.091,40.309,2790.028
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,6400,3,176.267,156.782,51275.708,155.266,52055.823
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,400,4,15.492,5.428,5.080,4.422,34.010
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,800,4,15.665,9.336,47.418,8.224,84.893
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,1600,4,18.052,16.773,356.790,16.041,428.333
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,3200,4,52.273,45.203,4388.440,43.314,4622.287
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,6400,4,175.277,156.759,51610.752,154.958,52399.243
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,400,5,16.053,5.397,4.765,4.393,34.072
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,800,5,15.578,9.161,45.101,8.405,82.417
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,1600,5,17.995,17.039,371.074,15.996,436.260
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,3200,5,52.624,43.938,4254.753,43.335,4471.480
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,6400,5,187.782,157.836,51790.385,155.113,52591.219
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,400,6,14.655,5.169,4.436,4.143,31.671
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,800,6,15.366,9.190,42.993,8.202,82.222
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,1600,6,18.813,15.437,326.725,15.649,396.662
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,3200,6,52.225,44.716,3882.183,43.297,4104.012
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,6400,6,175.123,156.190,52554.832,154.574,53341.943
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,400,7,14.734,5.278,4.598,4.308,32.263
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,800,7,15.593,9.411,45.155,8.321,82.668
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,1600,7,18.953,16.680,358.926,15.820,423.866
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,3200,7,53.162,45.099,4036.663,42.637,4256.295
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,6400,7,175.970,155.732,51643.665,153.201,52469.366
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,400,8,14.687,5.296,5.001,4.332,32.701
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,800,8,16.117,9.045,43.587,8.014,82.056
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,1600,8,19.050,16.681,352.262,16.151,418.286
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,3200,8,53.224,45.060,4442.164,42.698,4635.842
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,6400,8,173.784,155.460,49802.173,145.393,50556.542
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,400,9,14.850,5.466,5.049,4.324,33.184
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,800,9,15.766,9.186,44.554,8.416,82.174
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,1600,9,18.780,16.721,349.490,15.298,420.654
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,3200,9,53.414,44.060,4882.354,42.563,5102.937
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,6400,9,189.243,156.419,46711.441,154.369,47494.106
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,400,10,14.936,5.369,4.797,4.256,32.790
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,800,10,17.372,9.495,45.233,8.139,86.787
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,1600,10,19.668,17.217,352.323,15.571,418.775
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,3200,10,53.247,45.629,4651.431,42.334,4873.678
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",3,6400,10,172.714,154.503,51625.396,155.130,52385.009
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,400,1,11.328,5.324,4.703,6.961,31.662
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,800,1,12.619,10.977,36.305,11.642,75.605
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,1600,1,18.901,21.521,290.982,22.294,367.729
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,3200,1,54.450,50.278,4309.964,53.809,4580.763
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,6400,1,180.085,181.572,40859.877,184.853,41687.866
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,400,2,11.344,5.235,4.711,6.885,31.542
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,800,2,12.343,10.004,36.867,11.346,74.699
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,1600,2,16.503,21.234,290.187,23.414,364.453
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,3200,2,53.856,49.749,4382.312,52.913,4618.981
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,6400,2,180.987,181.802,41271.888,183.563,42105.482
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,400,3,11.360,5.385,4.721,6.981,31.921
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,800,3,12.613,9.198,36.492,12.302,74.679
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,1600,3,17.998,21.852,289.438,21.825,364.268
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,3200,3,54.502,51.162,4366.920,53.058,4605.554
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,6400,3,180.271,180.647,40719.788,185.492,41561.796
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,400,4,11.350,5.284,4.586,6.910,31.503
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,800,4,12.432,10.331,37.625,13.319,77.893
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,1600,4,17.864,21.114,286.999,23.726,363.156
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,3200,4,53.577,51.228,4319.935,53.738,4568.941
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,6400,4,181.986,184.052,40600.191,183.117,41447.840
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,400,5,11.169,5.370,4.710,7.030,31.653
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,800,5,12.372,10.082,37.714,13.408,77.719
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,1600,5,17.405,21.661,292.992,23.007,367.965
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,3200,5,53.729,50.211,4439.489,51.678,4674.471
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,6400,5,177.276,179.904,41251.663,183.024,42094.323
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,400,6,11.431,5.228,4.634,6.813,31.455
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,800,6,12.461,10.169,36.916,12.195,78.259
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,1600,6,17.872,20.984,291.781,23.734,374.787
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,3200,6,53.766,51.286,4436.149,52.533,4673.539
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,6400,6,182.748,183.838,41124.868,183.818,41976.462
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,400,7,11.349,5.449,4.689,6.846,31.736
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,800,7,13.175,10.315,37.091,11.526,76.313
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,1600,7,16.584,21.169,295.256,22.194,368.049
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,3200,7,54.432,50.029,4490.789,52.604,4726.130
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,6400,7,181.326,182.521,40458.388,181.931,41285.134
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,400,8,11.366,5.274,4.666,6.864,31.600
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,800,8,12.528,11.801,37.444,11.534,79.820
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,1600,8,17.761,21.286,289.576,23.833,365.508
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,3200,8,52.816,50.561,4266.843,53.326,4502.189
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,6400,8,178.667,179.368,40668.562,182.507,41590.374
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,400,9,11.322,5.282,4.735,6.799,31.495
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,800,9,13.002,10.037,37.858,12.428,77.537
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,1600,9,17.052,22.270,290.576,22.846,364.129
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,3200,9,54.734,50.183,4366.531,52.923,4571.950
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,6400,9,181.212,181.237,40764.242,183.600,41587.034
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,400,10,11.291,5.290,4.876,6.999,31.906
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,800,10,12.422,10.138,37.504,11.622,75.866
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,1600,10,16.358,20.694,293.265,24.082,367.327
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,3200,10,54.811,51.020,4569.053,52.621,4807.967
+mpi,mul_mpi_nfs,"-O3 -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer",4,6400,10,180.810,179.860,40373.360,184.688,41203.024

@@ -1,0 +1,17 @@
+
+Suite     : compiler
+Date      : 2026-05-26 06:25:06
+Host      : ip-172-31-5-96
+Compiler  : gcc
+GCC/Clang : gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+Sizes     : 400 800 1600 3200 6400
+Reps      : 10
+Reference : seq_std (-O3 -Wall -march=native -funroll-loops -flto -ffast-math -fomit-frame-pointer, threads=0)
+
+Average wall time (ms)
+=======================================================================
+Impl/Threads/Tag                N=400      N=800     N=1600     N=3200     N=6400  Avg Speedup
+--------------------------  ---------  ---------  ---------  ---------  ---------  ----------
+seq_std/best                     42.9      521.5     5090.7   121258.0  1225101.2       1.000x
+
+Speedup = T(reference) / T(row)  (>1 means row is faster than reference)
