@@ -1,0 +1,129 @@
+%===================================
+%===================================
+\section{Desarrollo}
+\label{sec:Desarrollo}
+
+A continuación se presenta el desarrollo de la solución, que incluye tanto la implementación de la multiplicación de matrices con MPI como la forma en que se realizaron las pruebas.
+
+\subsection{Características del software}
+
+El programa realiza la multiplicación de matrices cuadradas de orden \(n\) y divide el trabajo entre varios procesos MPI. Para ello, reparte las filas de la matriz \(A\) entre los procesos disponibles, de manera que cada uno calcule una parte del resultado final. La matriz \(B\), en cambio, no se divide entre procesos: cada uno la lee desde un sistema de archivos compartido NFS y la mantiene en memoria local durante el cálculo.
+
+La solución se compone de cuatro partes principales: el módulo encargado de leer y escribir matrices en formato binario, la función que organiza cómo se reparte el trabajo, el núcleo que hace la multiplicación y la función principal que coordina todo el proceso MPI.
+
+\subsubsection{Módulo de entrada y salida binaria}
+
+El módulo \texttt{matrix\_io} define el formato de archivo usado por el programa. Cada archivo guarda primero el tamaño de la matriz y luego todos sus valores en orden por filas. Esto permite leer y escribir las matrices de forma sencilla y rápida.
+
+La función \texttt{matrix\_read\_bin} abre el archivo, lee su tamaño, reserva memoria y carga todos los datos de una sola vez. Si ocurre algún problema, como que el archivo no exista o esté incompleto, la función devuelve error. Por su parte, \texttt{matrix\_write\_bin} hace el proceso inverso: guarda primero la dimensión de la matriz y luego sus valores.
+
+Usar un bloque continuo de memoria facilita tanto la lectura y escritura como el trabajo de MPI, porque los datos pueden enviarse y recibirse sin realizar copias intermedias innecesarias.
+
+\subsubsection{Distribución del trabajo entre procesos}
+
+La función \texttt{build\_distribution} se encarga de repartir las filas de la matriz \(A\) entre los procesos disponibles. La idea es simple: cada proceso recibe una cantidad parecida de filas, y si sobran algunas, se reparten entre los primeros procesos.
+
+Con esta información se construyen dos arreglos necesarios para las operaciones colectivas de MPI: uno indica cuántos datos recibe cada proceso y el otro indica desde qué posición del arreglo general comienza cada bloque. Estos arreglos permiten usar \texttt{MPI\_Scatterv} para repartir la matriz \(A\) y \texttt{MPI\_Gatherv} para reunir el resultado final.
+
+\subsubsection{Núcleo de multiplicación}
+
+El cálculo local reutiliza la función \texttt{matrixMultiplyRangeFlat}, que también se usa en la versión secuencial. Esto permite comparar ambas implementaciones sobre el mismo núcleo de cálculo.
+
+Cada proceso multiplica sus filas asignadas de \(A\) por la matriz completa \(B\). Para mejorar el rendimiento, el orden de los bucles se organiza de forma que el acceso a memoria sea más eficiente, especialmente en la matriz \(B\). Esto ayuda a aprovechar mejor la caché y reduce tiempos de espera cuando las matrices son grandes.
+
+\subsubsection{Flujo de ejecución principal}
+
+La función principal controla todo el ciclo de vida de MPI. Primero inicializa el entorno, obtiene el rango de cada proceso y verifica que los argumentos de ejecución sean correctos. Si algo está mal, el programa termina de forma ordenada.
+
+La ejecución se divide en cinco etapas: lectura, distribución, cómputo, recolección y escritura final. Cada etapa se mide por separado para poder analizar con claridad dónde se invierte el tiempo.
+
+\paragraph{Fase de E/S.}  
+El proceso principal lee la matriz \(A\) desde disco y comparte su tamaño con los demás procesos. Después, todos los procesos leen por su cuenta la matriz \(B\) desde NFS. Con esto se evita tener que enviar \(B\) completa por MPI, lo que reduce comunicación entre procesos. Cada proceso verifica además que ambas matrices tengan la misma dimensión.
+
+\paragraph{Fase de distribución.}  
+Una vez cargadas las matrices, el proceso principal reparte las filas de \(A\) entre los procesos mediante \texttt{MPI\_Scatterv}. Cada uno recibe solo la parte que le corresponde y libera la matriz completa cuando ya no la necesita.
+
+\paragraph{Fase de cómputo.}  
+Cada proceso realiza la multiplicación de su bloque local de filas por la matriz \(B\). Como cada uno trabaja sobre una parte independiente del problema, no es necesaria comunicación adicional durante este paso.
+
+\paragraph{Fase de recolección.}  
+Cuando todos terminan, el proceso principal reúne los bloques parciales del resultado usando \texttt{MPI\_Gatherv}. Esta operación es necesaria porque no todos los procesos reciben la misma cantidad de filas cuando \(n\) no se divide exactamente entre el número de procesos.
+
+\paragraph{Fase de escritura.}  
+Finalmente, solo el proceso principal guarda el resultado final en disco. El tiempo total reportado incluye también esta última escritura, de manera que la medición refleje el costo completo de la ejecución.
+
+\subsubsection{Medición del tiempo de ejecución}
+
+Para medir el rendimiento, el programa registra el tiempo de cada etapa usando \texttt{MPI\_Wtime}. Luego, los tiempos de todos los procesos se reducen al valor máximo, porque en una ejecución paralela el tiempo real observado es el del proceso que tarda más.
+
+El programa reporta así cinco valores: tiempo de lectura, tiempo de distribución, tiempo de cómputo, tiempo de recolección y tiempo total. Estos valores se imprimen en un formato que luego puede ser procesado automáticamente por el script de pruebas.
+
+\subsubsection{Despliegue en el clúster AWS}
+
+Las pruebas se ejecutaron en un clúster de tres instancias EC2 \texttt{m7i-flex.large}, cada una con 2 vCPUs y 8 GiB de RAM. Todas las máquinas están conectadas dentro de la misma red privada de AWS, lo que permite ejecutar MPI sin salir de la subred.
+
+El nodo principal exporta un directorio compartido mediante NFS, y ese mismo directorio es montado por todos los nodos. Allí se almacenan los binarios, las matrices de entrada, los resultados y los archivos temporales. Esto asegura que todos los procesos ejecuten exactamente los mismos archivos.
+
+La compilación se realiza con \texttt{mpicc} usando GCC y Open MPI. Además, el archivo \texttt{hostfile} define cuántos procesos puede ejecutar cada nodo, permitiendo controlar la distribución durante las pruebas.
+
+\subsection{Metodología de pruebas}
+
+Las pruebas de rendimiento se automatizan con el script \texttt{bench\_mpi\_nfs.sh}. Este script se encarga de compilar, desplegar binarios, generar matrices de prueba, ejecutar distintas configuraciones y guardar los resultados en un CSV.
+
+El script permite elegir entre una versión normal y una versión optimizada del programa. La versión optimizada usa banderas de compilación más agresivas, mientras que la versión normal se compila con opciones básicas de advertencia.
+
+\subsubsection{Barrido de conteos de proceso}
+
+Cuando no se indican manualmente los procesos a probar, el script toma la información del \texttt{hostfile} y genera automáticamente un conjunto de ejecuciones desde 1 hasta el máximo disponible. En este caso, con tres nodos, el barrido cubre las configuraciones de 1, 2 y 3 procesos.
+
+\subsubsection{Compilación y despliegue}
+
+Antes de cada serie de pruebas, el script verifica si el binario ya está compilado y actualizado. Si no lo está, lo recompila y lo copia al directorio compartido para que todos los nodos usen la misma versión. Esto evita inconsistencias entre ejecuciones.
+
+\subsubsection{Generación y persistencia de matrices de entrada}
+
+Para cada tamaño de matriz, el script verifica si ya existen los archivos de entrada. Si no existen, los genera una sola vez y luego los reutiliza. Esto hace que todas las ejecuciones se comparen sobre exactamente los mismos datos y evita que la lectura se vea afectada por la generación reciente de archivos.
+
+\subsubsection{Bucle de medición e idempotencia}
+
+El bucle principal recorre las distintas combinaciones de tamaño, número de procesos y réplicas. Antes de ejecutar un caso, el script revisa si ese resultado ya está en el CSV. Si ya existe, lo omite. Gracias a eso, el benchmark puede reanudarse sin repetir datos.
+
+Cada ejecución se lanza con \texttt{mpirun}, y si ocurre un error, el script registra el fallo y continúa con el siguiente caso. De esta manera, una prueba problemática no interrumpe toda la campaña de medición.
+
+\subsubsection{Registro de resultados}
+
+Cada medición se guarda inmediatamente en el CSV. El archivo incluye información sobre la máquina, la versión compilada, el número de procesos, el tamaño de la matriz, la réplica y los tiempos de cada fase.
+
+Todos los tiempos reportados corresponden al proceso más lento, porque ese es el valor que mejor representa el costo real de una ejecución paralela sincronizada.
+
+\subsubsection{Resumen de resultados}
+
+Al finalizar las pruebas, el script calcula promedios de tiempo y speedup para facilitar el análisis. De esta forma es posible comparar el comportamiento de la versión optimizada frente a la no optimizada, tanto en el cómputo puro como en el tiempo total de ejecución.
+
+\subsection{Verificación de correctitud}
+
+Para comprobar que el resultado producido por la implementación paralela es correcto, se utiliza un verificador independiente junto con un script que organiza las pruebas.
+
+\subsubsection{Verificador binario}
+
+El programa \texttt{verify\_mpi} actúa como referencia secuencial. Recibe como entrada las matrices \(A\), \(B\) y el resultado \(C\), vuelve a calcular la multiplicación y compara ambos resultados elemento por elemento.
+
+Si todo coincide, el programa imprime un mensaje de éxito. Si encuentra diferencias, informa cuántos elementos son incorrectos y muestra algunos ejemplos. Como los datos son enteros, la comparación es exacta.
+
+\subsubsection{Script de verificación}
+
+El script \texttt{verify\_mpi\_nfs.sh} ejecuta varios casos pensados para cubrir situaciones normales y casos límite. Entre ellos hay pruebas con un solo proceso, con distribución uniforme, con distribución irregular y con más procesos que filas.
+
+Estas pruebas son importantes porque permiten revisar los puntos donde es más fácil cometer errores: el reparto de filas, el cálculo de desplazamientos y el manejo de procesos que no reciben datos.
+
+\subsubsection{Comprobaciones previas a la ejecución}
+
+Antes de iniciar las pruebas, el script verifica que el directorio compartido esté disponible, que se puedan escribir archivos de prueba y que \texttt{mpirun} funcione correctamente. Si alguna de estas comprobaciones falla, el proceso se detiene de inmediato para evitar resultados inválidos.
+
+Las matrices de entrada se generan una sola vez y se reutilizan en todas las pruebas del mismo tamaño. Al terminar, el directorio temporal se elimina automáticamente para no dejar archivos residuales.
+
+\subsubsection{Reporte de resultados}
+
+Cada caso de prueba se reporta como \texttt{PASS}, \texttt{FAIL} o \texttt{SKIP}, según el resultado. Al final se imprime un resumen general con el número total de casos exitosos, fallidos y omitidos.
+
+El script termina con código de salida cero solo si no hubo fallos, por lo que también puede integrarse fácilmente en un flujo de integración continua.
